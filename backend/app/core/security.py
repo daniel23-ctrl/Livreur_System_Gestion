@@ -4,7 +4,12 @@ from passlib.context import CryptContext
 from app.core.config import settings
 
 # Outil de hachage des mots de passe
-pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+pwd_context = CryptContext(
+    schemes=["bcrypt"],
+    deprecated="auto",
+    bcrypt__rounds=12,
+    truncate_error=False
+)
 
 def hacher_mot_de_passe(mot_de_passe: str) -> str:
     """Transforme un mot de passe en clair en mot de passe haché"""
