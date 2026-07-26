@@ -3,7 +3,6 @@ from app.models.utilisateur import RoleEnum
 from app.models.livreur import VehiculeEnum, EtatActiviteEnum
 
 class LivreurCreate(BaseModel):
-    """Données pour créer un compte livreur"""
     nom: str
     prenom: str
     telephone: str
@@ -12,8 +11,18 @@ class LivreurCreate(BaseModel):
     type_vehicule: VehiculeEnum
     immatriculation: str
 
+class LivreurUpdate(BaseModel):
+    """Données modifiables d'un livreur"""
+    telephone: str | None = None
+    email: EmailStr | None = None
+    type_vehicule: VehiculeEnum | None = None
+    immatriculation: str | None = None
+
+class LivreurEtatUpdate(BaseModel):
+    """Changement d'état du livreur"""
+    etat_activite: EtatActiviteEnum
+
 class LivreurResponse(BaseModel):
-    """Données renvoyées après création livreur"""
     id: str
     nom: str
     prenom: str
@@ -27,3 +36,15 @@ class LivreurResponse(BaseModel):
 
     class Config:
         from_attributes = True
+
+class LivreurProfilUpdate(BaseModel):
+
+    """Ce que le livreur peut modifier lui-même"""
+
+    nom: str | None = None
+    prenom: str | None = None
+    telephone: str | None = None
+    email: EmailStr | None = None
+    type_vehicule: VehiculeEnum | None = None
+    immatriculation: str | None = None
+

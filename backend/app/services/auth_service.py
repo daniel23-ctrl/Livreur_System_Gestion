@@ -28,6 +28,7 @@ async def login(db: AsyncSession, login_data: LoginSchema) -> TokenSchema:
             "sub": utilisateur.id,
             "role": utilisateur.role.value
         }),
+        id=utilisateur.id,
         role=utilisateur.role,
         nom=utilisateur.nom,
         prenom=utilisateur.prenom
