@@ -50,6 +50,28 @@ async def require_admin( current_user: Utilisateur = Depends(get_current_user)) 
     
     return current_user
 
+async def require_client_ou_admin(
+    current_user: Utilisateur = Depends(get_current_user)
+) -> Utilisateur:
+    """Accessible au client et à l'administrateur"""
+    if current_user.role not in [RoleEnum.CLIENT, RoleEnum.ADMINISTRATEUR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès interdit"
+        )
+    return current_user
+
+async def require_livreur_ou_admin(
+    current_user: Utilisateur = Depends(get_current_user)
+) -> Utilisateur:
+    """Accessible au livreur et à l'administrateur"""
+    if current_user.role not in [RoleEnum.LIVREUR, RoleEnum.ADMINISTRATEUR]:
+        raise HTTPException(
+            status_code=status.HTTP_403_FORBIDDEN,
+            detail="Accès interdit"
+        )
+    return current_user
+
 async def require_livreur(
     current_user: Utilisateur = Depends(get_current_user)
 ) -> Utilisateur:
