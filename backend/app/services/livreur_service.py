@@ -18,7 +18,7 @@ async def creer_livreur(db: AsyncSession, data: LivreurCreate) -> LivreurRespons
         role=RoleEnum.LIVREUR
     )
     db.add(nouvel_utilisateur)
-    await db.flush()
+    await db.flush() 
 
     nouveau_livreur = Livreur(
         id_livreur=nouvel_utilisateur.id,
