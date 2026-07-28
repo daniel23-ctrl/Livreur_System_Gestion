@@ -1,4 +1,4 @@
-from fastapi import APIRouter, Depends, HTTPException
+from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
 from app.core.database import get_db
 
@@ -6,7 +6,8 @@ from app.schemas.commande import (
     CommandeCreate,
     CommandeResponse,
     CommandeUpdate,
-    StatutCommandeEnum
+    StatutCommandeEnum, 
+    AssignerLivreurSchema
 )
 from app.services.commande_service import (
     creer_commande,
@@ -26,16 +27,24 @@ from app.models.utilisateur import Utilisateur
 
 router = APIRouter(prefix="/api/commandes", tags=["Commandes"])
 
+
+
+
 @router.post("/", response_model=CommandeResponse)
-async def nouvelle_commande(data : CommandeCreate, db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_client_ou_admin)):
-    """Crée une nouvelle commande — Client uniquement"""
+async def nouvelle_commande(
+    data: CommandeCreate,
+    db: AsyncSession = Depends(get_db),
+    current_user: Utilisateur = Depends(require_client_ou_admin)
+):
+    """Crée une nouvelle commande"""
     try:
-        return await creer_commande(db, data, current_user.id)
+        return await creer_commande(db, data, current_user.id) 
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail="Erreur interne du serveur")
+        raise HTTPException(status_code=500, detail=str(e))
 
+    
 @router.get("/{id_commande}", response_model=CommandeResponse)
 async def detail_commande(id_commande: str, db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_client)):
     """Détail d'une commande — Client uniquement"""
@@ -89,13 +98,22 @@ async def update_statut_commande(id_commande: str, statut: StatutCommandeEnum, d
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     return commande
 
+
 @router.patch("/{id_commande}/livreur", response_model=CommandeResponse | None)
-async def assigner_livreur_commande(id_commande: str, id_livreur: str, db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_admin)):
-    """Assigne un livreur à une commande — Admin uniquement"""
-    commande = await affecter_commande_a_livreur(db, id_commande, id_livreur)
+async def assigner_livreur_commande(
+    id_commande: str,
+    data: AssignerLivreurSchema = Body(...),  
+    db: AsyncSession = Depends(get_db),
+    current_user: Utilisateur = Depends(require_admin)
+):
+    try:
+        commande = await affecter_commande_a_livreur(db, id_commande, data.id_livreur)
+    except ValueError as e:
+        raise HTTPException(status_code=400, detail=str(e))
     if not commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
-    return commande
+    
+
 
 @router.get("/suivi/{reference}", response_model=CommandeResponse)
 async def suivi_public(reference: str, db: AsyncSession = Depends(get_db)):

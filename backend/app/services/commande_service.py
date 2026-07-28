@@ -1,11 +1,14 @@
 from datetime import datetime
 from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
+from sqlalchemy.orm import selectinload
 from sqlalchemy.exc import IntegrityError
 from app.models.commande import Commande, StatutCommandeEnum
 from app.models.livreur import Livreur, EtatActiviteEnum
 from app.schemas.commande import CommandeResponse, CommandeCreate, CommandeUpdate
 import uuid
+from app.services.notification_service import envoyer_sms_assignation
+
 
 # Transitions autorisées et irréversibles 
 TRANSITIONS_AUTORISEES = {
@@ -17,20 +20,19 @@ TRANSITIONS_AUTORISEES = {
 def generate_reference() -> str:
     """Génère une référence unique pour une commande"""
     ref_prefix = "CMD"
-    timestamp = datetime.now().strftime("%Y%m%d%H%M%S")
+    timestamp = datetime.now().strftime("%Y%m%d")
     random_suffix = uuid.uuid4().hex[:6].upper()
     return f"{ref_prefix}-{timestamp}-{random_suffix}"
 
-async def creer_commande(db: AsyncSession, data: CommandeCreate) -> CommandeResponse:
+async def creer_commande(db: AsyncSession, data: CommandeCreate, id_client: str) -> CommandeResponse:
     """Crée une nouvelle commande — statut initial EN_ATTENTE"""
 
-    # Contrôle de cohérence des adresses — RG-CMD-04
     if data.adresse_ramassage.strip().lower() == data.adresse_livraison.strip().lower():
         raise ValueError("Les adresses de départ et d'arrivée ne peuvent pas être identiques")
 
     while True:
         nouvelle_commande = Commande(
-            id_client=data.id_client,
+            id_client=id_client,  # venu du token d'authentification
             reference=generate_reference(),
             description=data.description,
             adresse_ramassage=data.adresse_ramassage,
@@ -157,14 +159,10 @@ async def mettre_a_jour_statut_commande(db: AsyncSession,id_commande: str, nouve
     await db.refresh(commande)
     return convertir_to_response(commande)
 
-async def affecter_commande_a_livreur(
-    db: AsyncSession,
-    id_commande: str,
-    id_livreur: str
-) -> CommandeResponse | None:
+async def affecter_commande_a_livreur( db: AsyncSession, id_commande: str, id_livreur: str ) -> CommandeResponse | None:
     """Affecte une commande à un livreur — transaction atomique — RG-AFF-03"""
 
-    # Vérifier que la commande est EN_ATTENTE — RG-AFF-01
+    # Vérifier que la commande est EN_ATTENTE
     commande_res = await db.execute(
         select(Commande).where(Commande.id_commande == id_commande)
     )
@@ -174,9 +172,11 @@ async def affecter_commande_a_livreur(
     if commande.statut_commande != StatutCommandeEnum.EN_ATTENTE:
         raise ValueError("La commande n'est pas en attente")
 
-    # Vérifier que le livreur est DISPONIBLE — RG-AFF-01
+    # Vérifier que le livreur est DISPONIBLE avec son utilisateur chargé
     livreur_res = await db.execute(
-        select(Livreur).where(Livreur.id_livreur == id_livreur)
+        select(Livreur)
+        .where(Livreur.id_livreur == id_livreur)
+        .options(selectinload(Livreur.utilisateur))
     )
     livreur = livreur_res.scalar_one_or_none()
     if not livreur:
@@ -184,21 +184,34 @@ async def affecter_commande_a_livreur(
     if livreur.etat_activite != EtatActiviteEnum.DISPONIBLE:
         raise ValueError("Ce livreur n'est plus disponible. Veuillez en sélectionner un autre.")
 
-    # Transaction atomique — RG-AFF-03
+    # Sauvegarder les infos avant le commit
+    nom_livreur = livreur.utilisateur.nom
+    telephone_livreur = livreur.utilisateur.telephone
+
+    # Transaction atomique
     commande.id_livreur = id_livreur
     commande.statut_commande = StatutCommandeEnum.ASSIGNEE
     livreur.etat_activite = EtatActiviteEnum.EN_COURSE
 
     await db.commit()
     await db.refresh(commande)
+
+    # Envoi SMS après commit — non bloquant
+    await envoyer_sms_assignation(
+        db,
+        id_commande=commande.id_commande,
+        telephone_client=commande.telephone_demandeur,
+        nom_livreur=nom_livreur,
+        telephone_livreur=telephone_livreur
+    )
+
     return convertir_to_response(commande)
 
 def convertir_to_response(commande: Commande) -> CommandeResponse:
-    """Convertit un objet Commande en CommandeResponse"""
     return CommandeResponse(
         id_commande=commande.id_commande,
         id_client=commande.id_client,
-        id_livreur=getattr(commande, "id_livreur", None),
+        id_livreur=commande.id_livreur,
         reference=commande.reference,
         description=commande.description,
         adresse_ramassage=commande.adresse_ramassage,
