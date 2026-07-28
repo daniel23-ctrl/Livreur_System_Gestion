@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import auth, livreurs
+from app.routers import auth, livreurs, commandes
 
 app = FastAPI(
     title="Système de Gestion de Livreurs",
@@ -9,6 +9,7 @@ app = FastAPI(
 
 app.include_router(auth.router)
 app.include_router(livreurs.router)
+app.include_router(commandes.router)
 
 @app.get("/")
 async def root():

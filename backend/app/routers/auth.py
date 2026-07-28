@@ -21,6 +21,7 @@ async def connexion(login_data: LoginSchema, db: AsyncSession = Depends(get_db))
         if result.role == RoleEnum.LIVREUR:
             await changer_etat_livreur(db, result.id, EtatActiviteEnum.DISPONIBLE)
         return result
+    
     except ValueError as e:
         raise HTTPException(status_code=401, detail=str(e))
     
