@@ -7,7 +7,8 @@ from app.schemas.livreur import (
     LivreurResponse,
     LivreurUpdate,
     LivreurEtatUpdate,
-    LivreurProfilUpdate 
+    LivreurProfilUpdate,
+
 )
 
 from app.services.livreur_service import (
@@ -18,7 +19,8 @@ from app.services.livreur_service import (
     archiver_livreur,
     modifier_livreur,
     changer_etat_livreur,
-    modifier_mon_profil  
+    modifier_mon_profil ,
+    lister_livreurs_disponibles
 )
 
 from app.dependencies import require_admin, require_livreur 
@@ -35,6 +37,11 @@ async def nouveau_livreur( data: LivreurCreate, db: AsyncSession = Depends(get_d
     except Exception as e:
         raise HTTPException(status_code=400, detail=str(e))
     
+@router.get("/disponibles", response_model=list[LivreurResponse])
+async def liste_livreurs_disponibles( db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_admin)):
+    """Liste tous les livreurs disponibles pour l'assignation — Admin uniquement"""
+    return await lister_livreurs_disponibles(db)
+
 @router.get("/actifs", response_model=list[LivreurResponse])
 async def liste_livreurs_actifs( db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_admin)):
     """Liste tous les livreurs actifs , Admin uniquement"""

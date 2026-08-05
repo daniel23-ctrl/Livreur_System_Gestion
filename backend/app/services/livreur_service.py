@@ -97,6 +97,34 @@ async def lister_livreurs_actifs(db: AsyncSession) -> list[LivreurResponse]:
         for l in livreurs
     ]
 
+async def lister_livreurs_disponibles(db: AsyncSession) -> list[LivreurResponse]:
+
+    resultat = await db.execute(
+        select(Livreur).where(
+            Livreur.est_actif == True,
+            Livreur.etat_activite == EtatActiviteEnum.DISPONIBLE
+        ).options(
+            selectinload(Livreur.utilisateur)
+        )
+    )
+    livreurs = resultat.scalars().all()
+
+    return [
+        LivreurResponse(
+            id=l.utilisateur.id,
+            nom=l.utilisateur.nom,
+            prenom=l.utilisateur.prenom,
+            email=l.utilisateur.email,
+            telephone=l.utilisateur.telephone,
+            role=l.utilisateur.role,
+            type_vehicule=l.type_vehicule,
+            immatriculation=l.immatriculation,
+            etat_activite=l.etat_activite,
+            est_actif=l.est_actif,
+        )
+        for l in livreurs
+    ]
+
 async def trouver_livreur(db: AsyncSession, id: str) -> LivreurResponse | None:
     """Cherche un livreur par son id"""
     resultat = await db.execute(
