@@ -44,6 +44,15 @@ async def nouvelle_commande(
     except Exception as e:
         raise HTTPException(status_code=500, detail=str(e))
 
+@router.get("/", response_model=list[CommandeResponse])
+async def liste_commandes_par_client(db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_client_ou_admin)):
+    """Liste toutes les commandes d'un client — Client et administrateur uniquement"""
+    return await lister_commandes_par_client(db, current_user.id)
+
+@router.get("/all", response_model=list[CommandeResponse])
+async def liste_commandes(db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_admin)):
+    """Liste toutes les commandes — Admin uniquement"""
+    return await lister_commandes(db)
     
 @router.get("/{id_commande}", response_model=CommandeResponse)
 async def detail_commande(id_commande: str, db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_client)):
@@ -64,16 +73,6 @@ async def detail_commande_par_reference(reference: str, db: AsyncSession = Depen
     if commande.id_client != current_user.id:
         raise HTTPException(status_code=403, detail="Accès refusé à cette commande")
     return commande
-
-@router.get("/", response_model=list[CommandeResponse])
-async def liste_commandes_par_client(db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_client_ou_admin)):
-    """Liste toutes les commandes d'un client — Client et administrateur uniquement"""
-    return await lister_commandes_par_client(db, current_user.id)
-
-@router.get("/all", response_model=list[CommandeResponse])
-async def liste_commandes(db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_admin)):
-    """Liste toutes les commandes — Admin uniquement"""
-    return await lister_commandes(db)
 
 @router.get("/statut/{statut}", response_model=list[CommandeResponse])
 async def liste_commandes_par_statut(statut: StatutCommandeEnum, db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_admin)):
@@ -97,7 +96,6 @@ async def update_statut_commande(id_commande: str, statut: StatutCommandeEnum, d
     if not commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     return commande
-
 
 @router.patch("/{id_commande}/livreur", response_model=CommandeResponse | None)
 async def assigner_livreur_commande(

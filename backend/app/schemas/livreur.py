@@ -24,11 +24,11 @@ class LivreurEtatUpdate(BaseModel):
 
 class LivreurResponse(BaseModel):
     id: str
-    nom: str
-    prenom: str
-    telephone: str
+    nom: str | None = None
+    prenom: str | None = None
+    telephone: str | None = None
     email: EmailStr | None = None
-    role: RoleEnum
+    role: RoleEnum | None = None
     type_vehicule: VehiculeEnum
     immatriculation: str
     etat_activite: EtatActiviteEnum
@@ -36,7 +36,7 @@ class LivreurResponse(BaseModel):
 
     class Config:
         from_attributes = True
-
+        
 class LivreurProfilUpdate(BaseModel):
 
     """Ce que le livreur peut modifier lui-même"""

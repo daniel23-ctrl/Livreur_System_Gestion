@@ -11,9 +11,9 @@ class ClientCreate(BaseModel):
 
 class ClientResponse(BaseModel):
     """Données renvoyées après création client"""
-    id: str
-    nom: str
-    prenom: str
+    id_utilisateur: str | None = None
+    nom: str | None = None
+    prenom: str | None = None
     email: EmailStr | None = None
     telephone: str | None = None
     role: RoleEnum
