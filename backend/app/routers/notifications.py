@@ -12,18 +12,12 @@ from app.models.utilisateur import Utilisateur
 router = APIRouter(prefix="/api/notifications", tags=["Notifications"])
 
 @router.get("/", response_model=list[NotificationResponse])
-async def liste_notifications(
-    db: AsyncSession = Depends(get_db),
-    current_user: Utilisateur = Depends(require_admin)
-):
+async def liste_notifications(db: AsyncSession = Depends(get_db),current_user: Utilisateur = Depends(require_admin)):
     """Liste toutes les notifications — Admin uniquement"""
     return await lister_notifications(db)
 
 @router.get("/{id_commande}", response_model=list[NotificationResponse])
-async def notifications_par_commande(
-    id_commande: str,
-    db: AsyncSession = Depends(get_db),
-    current_user: Utilisateur = Depends(require_admin)
+async def notifications_par_commande(id_commande: str,db: AsyncSession = Depends(get_db),current_user: Utilisateur = Depends(require_admin)
 ):
     """Liste les notifications d'une commande — Admin uniquement"""
     notifications = await lister_notifications_par_commande(db, id_commande)

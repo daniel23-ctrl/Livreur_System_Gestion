@@ -3,7 +3,7 @@
 import { useEffect, useState, useCallback, useMemo } from "react";
 import axiosInstance from "@/lib/axios";
 import API from "@/lib/apiPaths";
-import { Commande, StatutCommande } from "@/types/admin.types";
+import { Commande, StatutCommande } from "@/types/commande.types";
 
 import CommandesHeader from "@/components/admin/commandes/CommandeHeader";
 import CommandesStats from "@/components/admin/commandes/CommandeStats";
@@ -108,7 +108,7 @@ export default function CommandesPage() {
   }, [commandesPeriode, filtreStatut, search]);
 
   return (
-    <div className="px-1 py-4 sm:p-6 lg:p-8 space-y-6">
+    <div className="px-1 py-2 sm:p-4 lg:p-2 space-y-4">
       {/* Tu peux passer `onOpenCreate={() => setIsCreateOpen(true)}` à ton CommandesHeader s'il contient le bouton */}
       <CommandesHeader 
         vuePeriode={vuePeriode} 

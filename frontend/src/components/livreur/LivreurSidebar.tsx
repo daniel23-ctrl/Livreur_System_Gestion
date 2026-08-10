@@ -27,8 +27,8 @@ import {
 import { LivreurProfile } from '@/types/mission';
 
 interface LivreurSidebarProps {
-    activeTab: 'missions' | 'history';
-    onTabChange: (tab: 'missions' | 'history') => void;
+    activeTab: 'commandes' | 'history';
+    onTabChange: (tab: 'commandes' | 'history') => void;
     missionsCount: number;
     historyCount: number;
     profile: LivreurProfile;
@@ -44,7 +44,6 @@ export function LivreurSidebar({
     const [isCollapsed, setIsCollapsed] = useState(false);
     const [isMobileOpen, setIsMobileOpen] = useState(false);
 
-    // Wrapper Tooltip réutilisable pour le mode réduit
     const NavItemWithTooltip = ({
         label,
         children,
@@ -58,7 +57,7 @@ export function LivreurSidebar({
 
         return (
             <Tooltip>
-                <TooltipTrigger asChild>
+                <TooltipTrigger>
                     <div className="w-full flex justify-center">{children}</div>
                 </TooltipTrigger>
                 <TooltipContent side="right" className="bg-[#0b3b29] text-white border-emerald-800 text-xs z-50">
@@ -68,7 +67,6 @@ export function LivreurSidebar({
         );
     };
 
-    // Contenu principal de la Sidebar
     const MenuContent = ({ isMobile = false }: { isMobile?: boolean }) => {
         const collapsed = isMobile ? false : isCollapsed;
 
@@ -76,7 +74,7 @@ export function LivreurSidebar({
             <div className="flex flex-col justify-between h-full text-white bg-[#0b3b29] w-full">
                 <div className="p-3 space-y-5 overflow-y-auto">
                     
-                    {/* HEADER DANS LE MENU */}
+                    {/* HEADER */}
                     {!isMobile && collapsed ? (
                         <div className="flex justify-center pt-1 pb-2 border-b border-emerald-900/60">
                             <NavItemWithTooltip label="Ouvrir le menu" collapsed={collapsed}>
@@ -124,7 +122,7 @@ export function LivreurSidebar({
                         </div>
                     )}
 
-                    {/* PROFIL & STATS */}
+                    {/* PROFIL & STATS (COURSES & NOTE) */}
                     <Card
                         className={`transition-all duration-300 ${
                             collapsed
@@ -142,8 +140,8 @@ export function LivreurSidebar({
 
                                 {!collapsed && (
                                     <div className="whitespace-nowrap overflow-hidden">
-                                        <h2 className="text-xs font-bold text-white truncate">
-                                            {profile.name}
+                                        <h2 className="text-xs text-emrold-950 truncate">
+                                            {profile.name }
                                         </h2>
                                         <div className="flex items-center gap-1.5 mt-0.5">
                                             <span className="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0" />
@@ -158,27 +156,30 @@ export function LivreurSidebar({
 
                         {!collapsed && (
                             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-emerald-800/40">
+                                {/* Courses à faire (provenant du service parent) */}
                                 <div className="bg-emerald-950/40 rounded-xl p-2 text-center">
                                     <span className="block text-sm font-bold text-white">
-                                        {profile.coursesCount}
+                                        {profile.assignedCoursesCount } 
                                     </span>
                                     <span className="text-[10px] text-emerald-200/60 uppercase tracking-wider">
-                                        Courses
+                                        A FAIRE
                                     </span>
                                 </div>
+                                
+                                {/* Note du livreur (provenant du service parent) */}
                                 <div className="bg-emerald-950/40 rounded-xl p-2 text-center">
                                     <span className="block text-sm font-bold text-white">
-                                        {profile.rating}
+                                        {profile.completedCoursesCount}
                                     </span>
                                     <span className="text-[10px] text-emerald-200/60 uppercase tracking-wider">
-                                        Note
+                                        réussies
                                     </span>
                                 </div>
                             </div>
                         )}
                     </Card>
 
-                    {/* NAVIGATION (Affichage vertical propre) */}
+                    {/* NAVIGATION */}
                     <div className="space-y-2 pt-1">
                         {!collapsed && (
                             <p className="text-[10px] font-bold text-emerald-200/50 uppercase tracking-wider px-1">
@@ -195,7 +196,7 @@ export function LivreurSidebar({
                                     type="button"
                                     variant="ghost"
                                     onClick={() => {
-                                        onTabChange('missions');
+                                        onTabChange('commandes');
                                         if (isMobile) setIsMobileOpen(false);
                                     }}
                                     className={`h-10 rounded-xl text-xs transition-all ${
@@ -203,7 +204,7 @@ export function LivreurSidebar({
                                             ? 'w-10 p-0 flex items-center justify-center' 
                                             : 'w-full px-3.5 flex items-center justify-between'
                                     } ${
-                                        activeTab === 'missions'
+                                        activeTab === 'commandes'
                                             ? 'bg-[#d4a017] hover:bg-[#d4a017] text-emerald-950 font-bold'
                                             : 'text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white'
                                     }`}
@@ -215,7 +216,7 @@ export function LivreurSidebar({
                                     {!collapsed && (
                                         <Badge
                                             className={`text-[10px] px-1.5 py-0.5 rounded-md border-0 shadow-none ${
-                                                activeTab === 'missions'
+                                                activeTab === 'commandes'
                                                     ? 'bg-emerald-950/20 text-emerald-950 font-bold'
                                                     : 'bg-emerald-900 text-emerald-200'
                                             }`}
@@ -290,8 +291,8 @@ export function LivreurSidebar({
     };
 
     return (
-        <TooltipProvider delayDuration={100}>
-            {/* BARRE MOBILE */}
+        <TooltipProvider delay={100}>
+            {/* MOBILE */}
             <div className="block md:hidden bg-[#0b3b29] text-white p-3 border-b border-emerald-900 w-full shrink-0">
                 <div className="flex items-center justify-between">
                     <div className="flex items-center gap-2.5">
@@ -321,7 +322,7 @@ export function LivreurSidebar({
                 </div>
             </div>
 
-            {/* SIDEBAR DESKTOP */}
+            {/* DESKTOP */}
             <aside
                 className={`hidden md:flex flex-col justify-between bg-[#0b3b29] shrink-0 h-full transition-all duration-300 ${
                     isCollapsed ? 'w-20' : 'w-64'

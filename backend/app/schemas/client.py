@@ -1,4 +1,4 @@
-from pydantic import BaseModel, EmailStr
+from pydantic import BaseModel, EmailStr, Field
 from app.models.utilisateur import RoleEnum
 
 class ClientCreate(BaseModel):
@@ -10,13 +10,21 @@ class ClientCreate(BaseModel):
     mot_de_passe: str
 
 class ClientResponse(BaseModel):
-    """Données renvoyées après création client"""
-    id_utilisateur: str | None = None
-    nom: str | None = None
-    prenom: str | None = None
+    """Données renvoyées après création/lecture client"""
+    id_utilisateur: str = Field(validation_alias="id")
+    nom: str
+    prenom: str 
     email: EmailStr | None = None
     telephone: str | None = None
     role: RoleEnum
 
-    class Config:
-        from_attributes = True
+    model_config = {"from_attributes": True} 
+
+class ClientUpdate(BaseModel):
+    """Données pour mettre à jour un compte client/admin"""
+    nom: str | None = None
+    prenom: str | None = None
+    email: EmailStr | None = None
+    telephone: str | None = None
+    ancien_mot_de_passe: str | None = None
+    nouveau_mot_de_passe: str | None = None

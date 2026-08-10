@@ -9,9 +9,9 @@ import {
   useReactTable,
 } from "@tanstack/react-table";
 
-import { Search, RefreshCw, Clock, ChevronLeft, ChevronRight } from "lucide-react";
+import { Search, RefreshCw, Clock, ChevronLeft, ChevronRight, ChevronsLeft, ChevronsRight } from "lucide-react";
 
-import { Commande, StatutCommande } from "@/types/admin.types";
+import { Commande, StatutCommande } from "@/types/commande.types";
 import { CommandeDetails } from "@/types/commande.types";
 import StatutBadge from "@/components/admin/StatutBadge";
 import { CommandeDetailsDialog } from "@/components/admin/commandes/CommandeDetailDialog";
@@ -25,6 +25,19 @@ import {
   TableHeader,
   TableRow,
 } from "@/components/ui/table";
+import {
+  Select,
+  SelectContent,
+  SelectItem,
+  SelectTrigger,
+  SelectValue,
+} from "@/components/ui/select";
+import {
+  Tooltip,
+  TooltipContent,
+  TooltipProvider,
+  TooltipTrigger,
+} from "@/components/ui/tooltip";
 
 const FILTRES: { label: string; value: StatutCommande | "TOUTES" }[] = [
   { label: "Toutes", value: "TOUTES" },
@@ -188,13 +201,13 @@ export default function CommandesTable({
     getPaginationRowModel: getPaginationRowModel(),
     initialState: {
       pagination: {
-        pageSize: 10,
+        pageSize: 8,
       },
     },
   });
 
   return (
-    <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-xs overflow-hidden w-full">
+    <div className="bg-white rounded-xl sm:rounded-2xl border border-gray-100 shadow-xs overflow-hidden w-full flex flex-col">
       {/* Search Bar + Refresh */}
       <div className="flex flex-col sm:flex-row sm:items-center justify-between p-3 sm:p-4 border-b border-gray-100 gap-3">
         <div className="relative w-full sm:max-w-md">
@@ -210,19 +223,28 @@ export default function CommandesTable({
 
         <div className="flex items-center justify-between sm:justify-end gap-2 w-full sm:w-auto">
           <span className="text-[10px] sm:text-[11px] text-gray-400 sm:hidden">
-            Màj : {lastRefresh.toLocaleTimeString("fr-FR")}
+            Dernière mise à jour : {lastRefresh.toLocaleTimeString("fr-FR")}
           </span>
-          <Button
-            variant="outline"
-            size="sm"
-            onClick={onRefresh}
-            disabled={loading}
-            className="h-8 sm:h-9 px-3 sm:w-9 sm:p-0 rounded-xl border-gray-200 text-xs gap-1.5"
-            title={`Dernière màj : ${lastRefresh.toLocaleTimeString("fr-FR")}`}
-          >
-            <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
-            <span className="sm:hidden text-xs">Actualiser</span>
-          </Button>
+          
+          <TooltipProvider>
+            <Tooltip>
+              <TooltipTrigger >
+                <Button
+                  variant="outline"
+                  size="sm"
+                  onClick={onRefresh}
+                  disabled={loading}
+                  className="h-8 sm:h-9 px-3 sm:w-9 sm:p-0 rounded-xl border-gray-200 text-xs gap-1.5"
+                >
+                  <RefreshCw size={14} className={loading ? "animate-spin" : ""} />
+                  <span className="sm:hidden text-xs">Actualiser</span>
+                </Button>
+              </TooltipTrigger>
+              <TooltipContent className="bg-gray-50 border text-emerald-950 border-gray-200  text-[10px] sm:text-xs">
+                <p>Dernière mise à jour : {lastRefresh.toLocaleTimeString("fr-FR")}</p>
+              </TooltipContent>
+            </Tooltip>
+          </TooltipProvider>
         </div>
       </div>
 
@@ -252,7 +274,7 @@ export default function CommandesTable({
       </div>
 
       {/* Table responsive */}
-      <div className="overflow-x-auto w-full">
+      <div className="overflow-x-auto w-full flex-1">
         <Table className="w-full min-w-[600px]">
           <TableHeader>
             {table.getHeaderGroups().map((headerGroup) => (
@@ -305,30 +327,85 @@ export default function CommandesTable({
         </Table>
       </div>
 
-      {/* Pagination responsive */}
-      {!loading && table.getPageCount() > 1 && (
-        <div className="flex flex-col sm:flex-row items-center justify-between gap-3 px-4 py-3 border-t border-gray-100 text-xs text-gray-500">
-          <span className="order-2 sm:order-1 text-[11px] sm:text-xs">
-            Page {table.getState().pagination.pageIndex + 1} sur {table.getPageCount()}
-          </span>
-          <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end order-1 sm:order-2">
+      {/* Barre de Pagination Shadcn complète */}
+      {!loading && commandes.length > 0 && (
+        <div className="flex flex-col sm:flex-row items-center justify-between px-4 sm:px-6 py-3 border-t border-gray-100 bg-[#FAFAFA] gap-3 text-xs text-gray-500">
+          <div className="flex items-center gap-4">
+            <p>
+              Affichage de <span className="font-semibold text-gray-900">{table.getState().pagination.pageIndex * table.getState().pagination.pageSize + 1}</span> à{" "}
+              <span className="font-semibold text-gray-900">
+                {Math.min((table.getState().pagination.pageIndex + 1) * table.getState().pagination.pageSize, commandes.length)}
+              </span> sur{" "}
+              <span className="font-semibold text-gray-900">{commandes.length}</span> entrées
+            </p>
+
+            <div className="hidden md:flex items-center gap-2">
+              <span>Lignes par page :</span>
+              <Select
+                value={`${table.getState().pagination.pageSize}`}
+                onValueChange={(value) => {
+                  table.setPageSize(Number(value));
+                }}
+              >
+                <SelectTrigger className="h-8 w-[70px] rounded-lg border-gray-200 text-xs font-semibold text-gray-900 focus:ring-[#DCA524]">
+                  <SelectValue placeholder={table.getState().pagination.pageSize} />
+                </SelectTrigger>
+                <SelectContent>
+                  {[5, 8, 10, 20, 30, 50].map((pageSize) => (
+                    <SelectItem key={pageSize} value={`${pageSize}`} className="text-xs">
+                      {pageSize}
+                    </SelectItem>
+                  ))}
+                </SelectContent>
+              </Select>
+            </div>
+          </div>
+
+          <div className="flex items-center gap-1.5">
             <Button
               variant="outline"
-              size="sm"
-              onClick={() => table.previousPage()}
+              size="icon"
+              className="h-8 w-8 rounded-lg border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              onClick={() => table.setPageIndex(0)}
               disabled={!table.getCanPreviousPage()}
-              className="h-8 text-xs rounded-lg flex-1 sm:flex-none"
+              title="Première page"
             >
-              <ChevronLeft size={14} className="mr-1" /> Précédent
+              <ChevronsLeft className="w-4 h-4" />
             </Button>
             <Button
               variant="outline"
-              size="sm"
+              size="icon"
+              className="h-8 w-8 rounded-lg border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              onClick={() => table.previousPage()}
+              disabled={!table.getCanPreviousPage()}
+              title="Page précédente"
+            >
+              <ChevronLeft className="w-4 h-4" />
+            </Button>
+
+            <span className="px-3 py-1 font-semibold text-gray-900 bg-white border border-gray-200 rounded-lg shadow-2xs">
+              Page {table.getState().pagination.pageIndex + 1} sur {table.getPageCount() || 1}
+            </span>
+
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 rounded-lg border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40"
               onClick={() => table.nextPage()}
               disabled={!table.getCanNextPage()}
-              className="h-8 text-xs rounded-lg flex-1 sm:flex-none"
+              title="Page suivante"
             >
-              Suivant <ChevronRight size={14} className="ml-1" />
+              <ChevronRight className="w-4 h-4" />
+            </Button>
+            <Button
+              variant="outline"
+              size="icon"
+              className="h-8 w-8 rounded-lg border-gray-200 bg-white text-gray-600 hover:bg-gray-50 disabled:opacity-40"
+              onClick={() => table.setPageIndex(table.getPageCount() - 1)}
+              disabled={!table.getCanNextPage()}
+              title="Dernière page"
+            >
+              <ChevronsRight className="w-4 h-4" />
             </Button>
           </div>
         </div>

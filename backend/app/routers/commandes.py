@@ -1,6 +1,8 @@
 from fastapi import APIRouter, Depends, HTTPException, Body
 from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy import select
 from app.core.database import get_db
+from app.models.livreur import Livreur
 
 from app.schemas.commande import (
     CommandeCreate,
@@ -18,16 +20,15 @@ from app.services.commande_service import (
     lister_commandes_par_statut,
     lister_commandes_par_client,
     mettre_a_jour_commande,
-    mettre_a_jour_statut_commande
+    mettre_a_jour_statut_commande,
+    lister_commandes_par_livreur_connecte
     
 )
 
-from app.dependencies import require_admin, require_livreur , require_client, get_current_user, require_client_ou_admin, require_livreur_ou_admin
+from app.dependencies import require_admin, require_livreur , require_client, require_client_ou_admin, require_livreur_ou_admin
 from app.models.utilisateur import Utilisateur
 
 router = APIRouter(prefix="/api/commandes", tags=["Commandes"])
-
-
 
 
 @router.post("/", response_model=CommandeResponse)
@@ -54,6 +55,16 @@ async def liste_commandes(db: AsyncSession = Depends(get_db), current_user: Util
     """Liste toutes les commandes — Admin uniquement"""
     return await lister_commandes(db)
     
+
+@router.get("/livreur", response_model=list[CommandeResponse])
+async def mes_commandes_livreur(
+    db: AsyncSession = Depends(get_db), 
+    current_user: Utilisateur = Depends(require_livreur)
+):
+    """Liste les commandes assignées au livreur connecté"""
+    return await lister_commandes_par_livreur_connecte(db, current_user.id)
+
+
 @router.get("/{id_commande}", response_model=CommandeResponse)
 async def detail_commande(id_commande: str, db: AsyncSession = Depends(get_db), current_user: Utilisateur = Depends(require_client)):
     """Détail d'une commande — Client uniquement"""
@@ -110,8 +121,7 @@ async def assigner_livreur_commande(
         raise HTTPException(status_code=400, detail=str(e))
     if not commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
-    
-
+    return commande
 
 @router.get("/suivi/{reference}", response_model=CommandeResponse)
 async def suivi_public(reference: str, db: AsyncSession = Depends(get_db)):

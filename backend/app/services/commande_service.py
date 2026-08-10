@@ -1,6 +1,6 @@
 from datetime import datetime
 import uuid
-
+from fastapi import HTTPException, status 
 from app.models.utilisateur import RoleEnum
 from sqlalchemy import select
 from sqlalchemy.exc import IntegrityError
@@ -129,6 +129,7 @@ async def lister_commandes_par_client(
     db: AsyncSession, id_client: str
 ) -> list[CommandeResponse]:
     """Liste les commandes d'un client"""
+    
     resultat = await db.execute(
         select(Commande)
         .options(*LOAD_RELATIONS)
@@ -136,7 +137,6 @@ async def lister_commandes_par_client(
     )
     commandes = resultat.scalars().all()
     return [convertir_to_response(c) for c in commandes]
-
 
 async def mettre_a_jour_commande(
     db: AsyncSession, id_commande: str, data: CommandeUpdate
@@ -255,6 +255,31 @@ async def affecter_commande_a_livreur(
 
     return await trouver_commande(db, id_commande)
 
+async def lister_commandes_par_livreur_connecte(
+    db: AsyncSession, id_utilisateur: str
+) -> list[CommandeResponse]:
+    """Récupère le profil livreur et liste ses commandes"""
+    
+    # 1. On cherche le livreur associé à l'utilisateur connecté
+    res = await db.execute(select(Livreur).where(Livreur.id_livreur == id_utilisateur))
+    livreur = res.scalar_one_or_none() 
+    
+    if not livreur:
+        raise HTTPException(
+            status_code=status.HTTP_404_NOT_FOUND, 
+            detail="Profil livreur introuvable"
+        )
+        
+    # 2. On récupère directement les commandes de ce livreur
+    resultat = await db.execute(
+        select(Commande)
+        .options(*LOAD_RELATIONS)
+        .where(Commande.id_livreur == livreur.id_livreur)
+    )
+    commandes = resultat.scalars().all()
+    
+    return [convertir_to_response(c) for c in commandes]
+   
 
 def convertir_to_response(commande: Commande) -> CommandeResponse:
     client_obj = None
@@ -263,11 +288,11 @@ def convertir_to_response(commande: Commande) -> CommandeResponse:
         client_user = commande.client
 
         client_obj = ClientResponse(
-            id_utilisateur=str(
+            id=str(  # <--- Corrigé de id_utilisateur à id pour correspondre au schéma Pydantic
                 getattr(
                     client_user, "id", getattr(client_user, "id_utilisateur", "")
                 )
-            ),  # <-- 'id_utilisateur' ici
+            ),
             nom=getattr(client_user, "nom", ""),
             prenom=getattr(client_user, "prenom", ""),
             telephone=getattr(client_user, "telephone", None),
