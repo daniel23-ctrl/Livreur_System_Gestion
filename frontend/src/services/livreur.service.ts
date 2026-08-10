@@ -1,6 +1,6 @@
 import axiosInstance from "@/lib/axios";
 import API from "@/lib/apiPaths";
-import { Livreur,EtatActiviteEnum } from "@/types/livreur.types";
+import { Livreur,EtatActiviteEnum, LivreurCreatePayload} from "@/types/livreur.types";
 
 
 export async function getAll(): Promise<Livreur[]> {
@@ -13,9 +13,13 @@ export async function getDisponibles(): Promise<Livreur[]> {
   return res.data;
 }
 
-
 export async function getActifs(): Promise<Livreur[]> {
-  const res = await axiosInstance.get(`${API.livreurs.base}/actifs`);
+  const res = await axiosInstance.get(API.livreurs.actifs);
+  return res.data;
+}
+
+export async function getInactifs(): Promise<Livreur[]> {
+  const res = await axiosInstance.get(API.livreurs.inactifs);
   return res.data;
 }
 
@@ -24,27 +28,37 @@ export async function getById(id: string): Promise<Livreur> {
   return res.data;
 }
 
-export async function createLivreur(data: any): Promise<Livreur> {
+export async function getMyself(): Promise<Livreur> {
+  const res = await axiosInstance.get(API.livreurs.moi);
+  return res.data;
+}
+
+export async function createLivreur(data: LivreurCreatePayload): Promise<Livreur> {
   const res = await axiosInstance.post(API.livreurs.base, data);
   return res.data;
 }
 
-export async function updateLivreur(id: string, data: any): Promise<Livreur> {
-  const res = await axiosInstance.put(`${API.livreurs.base}/${id}`, data);
+export async function updateLivreur(id: string, data: Partial<LivreurCreatePayload>): Promise<Livreur> {
+  const res = await axiosInstance.put(`${API.livreurs.modifier(id)}`, data);
   return res.data;
 }
 
 export async function updateEtatLivreur(id: string, etat_activite: EtatActiviteEnum): Promise<Livreur> {
-  const res = await axiosInstance.patch(`${API.livreurs.base}/${id}/etat`, { etat_activite });
+  const res = await axiosInstance.patch(`${API.livreurs.etat(id)}`, { etat_activite });
   return res.data;
 }
 
-export async function updateMonProfil(data: any): Promise<Livreur> {
-  const res = await axiosInstance.patch(`${API.livreurs.base}/moi`, data);
+export async function updateMonProfil(data: Partial<LivreurCreatePayload>): Promise<Livreur> {
+  const res = await axiosInstance.patch(`${API.livreurs.moi}`, data);
   return res.data;
 }
 
-export async function deleteLivreur(id: string): Promise<{ message: string }> {
-  const res = await axiosInstance.delete(`${API.livreurs.base}/${id}`);
+export async function archiverLivreur(id: string): Promise<{ message: string }> {
+  const res = await axiosInstance.delete(`${API.livreurs.supprimer(id)}`);
+  return res.data;
+}
+
+export async function restaurerLivreur(id: string): Promise<Livreur> {
+  const res = await axiosInstance.patch(`${API.livreurs.restaurer(id)}`);
   return res.data;
 }

@@ -13,6 +13,7 @@ export interface LoginResponse {
   id: string;
   nom: string;
   prenom: string;
+  telephone? : string
 }
 
 export interface InscriptionClientPayload {
@@ -33,11 +34,53 @@ export interface InscriptionLivreurPayload {
   immatriculation: string;
 }
 
-export interface InscriptionResponse {
+// export interface InscriptionResponse {
+//   id: string;
+//   nom: string;
+//   prenom: string;
+//   email: string | null;
+//   telephone: string | null;
+//   role: Role;
+// }
+
+import { RoleEnum } from "./livreur.types";
+
+
+
+export type EtatActiviteEnum = "DISPONIBLE" | "EN_COURSE" | "HORS_LIGNE";
+
+export interface Client {
+  id_utilisateur: string;
+  nom: string;
+  prenom: string;
+  email?: string | null;
+  telephone?: string | null;
+  role?: string | null;
+}
+
+export interface ClientResponse{
+    id_utilisateur: string 
+    nom: string
+    prenom: string 
+    email?: string 
+    telephone?: string
+    role: RoleEnum
+}
+export interface Livreur {
   id: string;
   nom: string;
   prenom: string;
-  email: string | null;
-  telephone: string | null;
-  role: Role;
+  telephone: string;
+  type_vehicule: "MOTO" | "VOITURE";
+  immatriculation: string;
+  etat_activite: EtatActiviteEnum;
+  nb_courses?: number;
+}
+export interface ClientUpdate {
+  nom?: string;
+  prenom?: string;
+  email?: string;
+  telephone?: string;
+  ancien_mot_de_passe?: string;
+  nouveau_mot_de_passe?: string;
 }

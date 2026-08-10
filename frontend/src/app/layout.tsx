@@ -1,7 +1,8 @@
 import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
-import { Toaster } from "sonner"; // 1. Import du composant Toaster de sonner
+import { Toaster } from "sonner";
+import Providers from "@/components/providers"; // <-- On importe ton fichier providers
 import "./globals.css";
 
 const inter = Inter({
@@ -35,11 +36,13 @@ export default function RootLayout({
       className={`${inter.variable} ${serifFont.variable} h-full antialiased`}
     >
       <body className="min-h-full flex flex-col font-sans bg-[#F4F7F5] text-slate-800">
-        <TooltipProvider>
-          {children}
-          {/* 2. Ajout du Toaster ici pour rendre les notifications visibles */}
-          <Toaster richColors position="top-right" />
-        </TooltipProvider>
+        {/* On enveloppe l'app avec ton composant Providers */}
+        <Providers>
+          <TooltipProvider>
+            {children}
+            <Toaster richColors position="top-right" />
+          </TooltipProvider>
+        </Providers>
       </body>
     </html>
   );

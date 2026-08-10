@@ -14,8 +14,8 @@ export interface Mission {
 
 export interface LivreurProfile {
   initials: string;
-  name: string;
+  name: string; 
   status: string;
-  coursesCount: number;
-  rating: number;
+  assignedCoursesCount: number; 
+  completedCoursesCount: number; 
 }

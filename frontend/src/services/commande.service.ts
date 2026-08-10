@@ -1,6 +1,6 @@
 import axiosInstance from "@/lib/axios";
 import API from "@/lib/apiPaths";
-import { CommandeResponse, CreateCommandePayload } from "@/types/commande.types"; 
+import { CommandeResponse, CreateCommandePayload, StatutCommande } from "@/types/commande.types"; 
 
 
 export async function getAll(): Promise<CommandeResponse[]> {
@@ -42,12 +42,17 @@ export async function getCommandesByStatut(statut: string): Promise<CommandeResp
   return res.data;
 }
 
+export async function getCommandesLivreurConnecte(): Promise<CommandeResponse[]> {
+  const res = await axiosInstance.get(API.commandes.livreur);
+  return res.data;
+}
+
 export async function updateCommande(idCommande: string, payload: Partial<CreateCommandePayload>): Promise<CommandeResponse> {
   const res = await axiosInstance.put(`${API.commandes.base}/${idCommande}`, payload);
   return res.data;
 }
 
-export async function updateStatutCommande(idCommande: string, statut: string): Promise<CommandeResponse> {
+export async function updateStatutCommande(idCommande: string, statut:StatutCommande ): Promise<CommandeResponse> {
   const res = await axiosInstance.patch(`${API.commandes.base}/statut`, null, {
     params: { id_commande: idCommande, statut }
   });

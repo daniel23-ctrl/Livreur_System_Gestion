@@ -28,8 +28,7 @@ import {
     Clock,
     Check,
 } from "lucide-react";
-import { CommandeDetails } from "@/types/commande.types";
-import { StatutCommande } from "@/types/admin.types";
+import { CommandeDetails, StatutCommande } from "@/types/commande.types";
 import { getDisponibles } from "@/services/livreur.service";
 import { affecterLivreur } from "@/services/commande.service";
 import { toast } from "sonner";

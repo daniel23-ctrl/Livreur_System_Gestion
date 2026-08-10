@@ -10,16 +10,20 @@ export interface LivreurCreatePayload {
   nom: string;
   prenom: string;
   telephone: string;
+  mot_de_passe: string;
+  email?: string;
   type_vehicule: "MOTO" | "VOITURE";
   immatriculation: string;
 }
+  
+
 
 export interface Livreur {
     id: string;
     nom?: string; 
     prenom?: string;
     telephone?: string;
-    email?: StringConstructor;
+    email?: string;
     role?: RoleEnum;
     type_vehicule: VehiculeEnum;
     immatriculation: string;

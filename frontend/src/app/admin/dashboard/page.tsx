@@ -1,13 +1,15 @@
 "use client";
 
 import { useEffect, useState, useCallback } from "react";
-import { CircleCheck, TrendingUp, Star } from "lucide-react";
+import { CircleCheck, TrendingUp, Star, Loader2 } from "lucide-react";
 import KpiCard from "@/components/admin/KpiCard";
 import EtatLivreurDot from "@/components/admin/EtatLivreurDot";
 import DashboardCommandesTable from "@/components/admin/DashboardCommandesTable";
 import axiosInstance from "@/lib/axios";
 import API from "@/lib/apiPaths";
-import { Commande, Livreur, KpiData } from "@/types/admin.types";
+import { Commande } from "@/types/commande.types";
+import {KpiData} from "@/types/kpidata"
+import {Livreur} from "@/types/livreur.types"
 
 export default function DashboardPage() {
   const [commandes, setCommandes] = useState<Commande[]>([]);
@@ -18,6 +20,8 @@ export default function DashboardPage() {
 
   const fetchData = useCallback(async () => {
     try {
+      // Optionnel : ne pas remettre setLoading(true) lors des auto-refreshs en arrière-plan (toutes les 30s) 
+      // pour éviter les clignotements intempestifs, ou le garder si vous le souhaitez à chaque fois.
       const [cmdRes, livRes] = await Promise.all([
         axiosInstance.get(API.commandes.all),
         axiosInstance.get(API.livreurs.base),
@@ -75,29 +79,13 @@ export default function DashboardPage() {
   const enCourse = livreurs.filter((l) => l.etat_activite === "EN_COURSE").length;
   const horsligne = livreurs.filter((l) => l.etat_activite === "HORS_LIGNE").length;
 
-  if (loading) {
-    return (
-      <div
-        className="flex-1 min-h-screen flex items-center justify-center bg-cover bg-center"
-        style={{ backgroundImage: "url('/backdashboard.jpg')" }}
-      >
-        <div className="flex flex-col items-center gap-3 bg-white/80 p-6 rounded-xl backdrop-blur-sm shadow-sm">
-          <div
-            className="w-8 h-8 border-2 border-t-transparent rounded-full animate-spin"
-            style={{ borderColor: "#C49A1A", borderTopColor: "transparent" }}
-          />
-          <p className="text-sm text-[#9CA3AF]">Chargement...</p>
-        </div>
-      </div>
-    );
-  }
-
   return (
     <div
       className="flex-1 w-full min-h-screen flex flex-col bg-cover bg-center bg-no-repeat bg-fixed"
+      style={{ backgroundImage: "url('/backdashboard.jpg')" }}
     >
       <div className="flex-1 p-2.5 sm:p-6 space-y-3 sm:space-y-6 max-w-[1600px] mx-auto w-full">
-        {/* KPI Cards : Aligné côte-à-côte dès le mobile (grid-cols-3) */}
+        {/* KPI Cards : Toujours visibles même pendant le chargement */}
         <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
           <KpiCard
             label="Livraisons"
@@ -124,13 +112,20 @@ export default function DashboardPage() {
 
         {/* Section Tableau + Livreurs */}
         <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 items-start w-full">
-          {/* Conteneur Tableau : forcing w-full et table-layout adapté */}
-          <div className="w-full xl:flex-1 min-w-0  rounded-xl sm:rounded-2xl  border border-gray-100 sm:p-4 overflow-hidden">
-            <DashboardCommandesTable
-              commandes={commandes}
-              lastRefresh={lastRefresh}
-              onRefresh={fetchData}
-            />
+          {/* Conteneur Tableau avec gestion du chargement ciblée */}
+          <div className="w-full xl:flex-1 min-w-0  rounded-xl sm:rounded-2xl border border-gray-100  overflow-hidden shadow-sm">
+            {loading && commandes.length === 0 ? (
+              <div className="flex flex-col items-center justify-center p-16 gap-3">
+                <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#C49A1A" }} />
+                <p className="text-sm text-slate-500 font-medium">Chargement des commandes...</p>
+              </div>
+            ) : (
+              <DashboardCommandesTable
+                commandes={commandes}
+                lastRefresh={lastRefresh}
+                onRefresh={fetchData}
+              />
+            )}
           </div>
 
           {/* Panel Livreurs */}
@@ -152,7 +147,11 @@ export default function DashboardPage() {
             </div>
 
             <div className="overflow-y-auto max-h-[250px] sm:max-h-[350px] lg:max-h-[500px]">
-              {livreurs.length === 0 ? (
+              {loading && livreurs.length === 0 ? (
+                <div className="flex justify-center items-center py-10">
+                  <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
+                </div>
+              ) : livreurs.length === 0 ? (
                 <p className="text-center py-6 text-[11px] sm:text-xs text-[#9CA3AF]">Aucun livreur</p>
               ) : (
                 livreurs.map((liv) => {

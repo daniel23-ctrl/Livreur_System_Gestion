@@ -16,7 +16,7 @@ async def login(db: AsyncSession, login_data: LoginSchema) -> TokenSchema:
             )
         )
     )
-    utilisateur = resultat.scalar_one_or_none()
+    utilisateur : Utilisateur = resultat.scalar_one_or_none()
 
     if not utilisateur or not verifier_mot_de_passe(
         login_data.mot_de_passe, utilisateur.mot_de_passe
@@ -31,5 +31,7 @@ async def login(db: AsyncSession, login_data: LoginSchema) -> TokenSchema:
         id=utilisateur.id,
         role=utilisateur.role,
         nom=utilisateur.nom,
-        prenom=utilisateur.prenom
+        prenom=utilisateur.prenom,
+        telephone=utilisateur.telephone
+        
     )

@@ -3,10 +3,12 @@ import API from "@/lib/apiPaths";
 import {
   LoginPayload,
   LoginResponse,
+  ClientResponse,
   InscriptionClientPayload,
   InscriptionLivreurPayload,
-  InscriptionResponse,
+  Role,
 } from "@/types/auth.types";
+
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
   const { data } = await axiosInstance.post<LoginResponse>(
@@ -18,13 +20,14 @@ export async function login(payload: LoginPayload): Promise<LoginResponse> {
   localStorage.setItem("id", data.id);
   localStorage.setItem("nom", data.nom);
   localStorage.setItem("prenom", data.prenom);
+  localStorage.setItem("telephone", data.telephone || "")
   return data;
 }
 
 export async function inscrireClient(
   payload: InscriptionClientPayload
-): Promise<InscriptionResponse> {
-  const { data } = await axiosInstance.post<InscriptionResponse>(
+): Promise<ClientResponse> {
+  const { data } = await axiosInstance.post<ClientResponse>(
     API.auth.inscription,
     payload
   );
@@ -33,8 +36,8 @@ export async function inscrireClient(
 
 export async function inscrireLivreur(
   payload: InscriptionLivreurPayload
-): Promise<InscriptionResponse> {
-  const { data } = await axiosInstance.post<InscriptionResponse>(
+): Promise<ClientResponse> {
+  const { data } = await axiosInstance.post<ClientResponse>(
     API.auth.inscriptionLivreur,
     payload
   );
@@ -46,7 +49,7 @@ export async function logout(): Promise<void> {
     await axiosInstance.post(API.auth.logout);
   } finally {
     localStorage.clear();
-    window.location.href = "/login";
+    window.location.href = "/auth/login";
   }
 }
 
@@ -54,13 +57,18 @@ export function getCurrentUser() {
   if (typeof window === "undefined") return null;
   const token = localStorage.getItem("access_token");
   if (!token) return null;
-  return {
-    token,
-    role: localStorage.getItem("role"),
-    id: localStorage.getItem("id"),
-    nom: localStorage.getItem("nom"),
-    prenom: localStorage.getItem("prenom"),
+
+  const response: LoginResponse = {
+    access_token: token,
+    token_type: "Bearer",
+    role: (localStorage.getItem("role") as Role) || "CLIENT",
+    id: localStorage.getItem("id") ?? "",
+    nom: localStorage.getItem("nom") ?? "",
+    prenom: localStorage.getItem("prenom") ?? "",
+    telephone: localStorage.getItem("telephone") || undefined,
   };
+  
+  return response
 }
 
 export function getRedirectPath(role: string): string {

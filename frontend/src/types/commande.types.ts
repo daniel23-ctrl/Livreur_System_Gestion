@@ -1,5 +1,44 @@
-import { Client, StatutCommande } from "./admin.types";
+import { Client } from "./auth.types";
 import { Livreur } from "./livreur.types";
+
+export type StatutCommande =
+  | "EN_ATTENTE"
+  | "ASSIGNEE"
+  | "EN_COURS_DE_COLLECTE"
+  | "EN_COURS_DE_LIVRAISON"
+  | "LIVREE"
+  | "ANNULEE";
+
+export interface Commande {
+  id_commande: string;
+  id_client?: string | null;
+  client?: Client | null;
+  id_livreur?: string | null;
+  livreur?: Livreur | null
+  reference: string;
+  description: string;
+  adresse_ramassage: string;
+  adresse_livraison: string;
+  nom_destinataire: string;
+  telephone_destinataire: string;
+  telephone_demandeur: string;
+  instructions?: string | null;
+  montant_a_percevoir: number;
+  statut_commande: StatutCommande;
+  createdAt?: string | null;
+  updatedAt?: string | null;
+}
+
+export interface CommandeCreatePayload {
+  description: string;
+  adresse_ramassage: string;
+  adresse_livraison: string;
+  nom_destinataire: string;
+  telephone_destinataire: string;
+  telephone_demandeur: string;
+  instructions?: string | null;
+  montant_a_percevoir: number;
+}
 
 export interface CommandeDetails {
   id_commande: string;

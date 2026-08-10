@@ -12,3 +12,4 @@ class TokenSchema(BaseModel):
     id: str        
     nom: str
     prenom: str
+    telephone : str

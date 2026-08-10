@@ -37,7 +37,8 @@ export default function AdminLayout({
           onToggleMobileMenu={() => setIsMobileMenuOpen(!isMobileMenuOpen)}
         />
 
-        <main className="flex-1 overflow-y-auto p-3 sm:p-6" style={{ backgroundImage: "url('/backdashboard.jpg')" }}>
+        {/* Padding réduit de p-3 sm:p-6 à p-2 sm:p-3 pour rapprocher les composants */}
+        <main className="flex-1 overflow-y-auto  sm:p-1" style={{ backgroundImage: "url('/backdashboard.jpg')" }}>
           {children}
         </main>
       </div>

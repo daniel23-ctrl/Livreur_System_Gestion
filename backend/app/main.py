@@ -1,5 +1,5 @@
 from fastapi import FastAPI
-from app.routers import auth, livreurs, commandes, notifications
+from app.routers import auth, livreurs, commandes, notifications, admins, clients
 from fastapi.middleware.cors import CORSMiddleware
 app = FastAPI(
     title="Système de Gestion de Livreurs",
@@ -15,9 +15,11 @@ app.add_middleware(
 )
 
 app.include_router(auth.router)
+app.include_router(admins.router)
 app.include_router(livreurs.router)
 app.include_router(commandes.router)
 app.include_router(notifications.router)
+app.include_router(clients.router)
 
 @app.get("/")
 async def root():
