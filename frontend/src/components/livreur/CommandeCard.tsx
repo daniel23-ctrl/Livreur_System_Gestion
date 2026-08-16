@@ -1,29 +1,101 @@
 'use client';
 
-import React from 'react';
+import React, { useState, useEffect } from 'react';
 import { Card } from '@/components/ui/card';
 import { Button } from '@/components/ui/button';
 import { CommandeResponse, StatutCommande } from '@/types/commande.types';
 import { StatusBadge } from './StatusBadge';
-import { Navigation, CheckCircle, PackageCheck, Play, Package, UserCircle, XCircle } from 'lucide-react';
+import { Navigation, CheckCircle, PackageCheck, Play, Package, UserCircle, XCircle, Loader2, AlertTriangle } from 'lucide-react';
+import { getReadableAddress, isCoordinatesString } from '@/utils/addresse';
 
 interface CommandeCardProps {
   commande: CommandeResponse;
   onUpdateStatus?: (id_commande: string, nouveauStatut: StatutCommande) => void;
 }
 
+function useReverseGeocode(coordsOrAddress: string) {
+  const [displayText, setDisplayText] = useState(coordsOrAddress);
+  const [loading, setLoading] = useState(false);
+
+  useEffect(() => {
+    let isMounted = true;
+
+    const resolve = async () => {
+      if (isCoordinatesString(coordsOrAddress)) {
+        setLoading(true);
+        const readable = await getReadableAddress(coordsOrAddress);
+        if (isMounted) {
+          setDisplayText(readable);
+          setLoading(false);
+        }
+      } else {
+        setDisplayText(coordsOrAddress);
+      }
+    };
+
+    resolve();
+    return () => {
+      isMounted = false;
+    };
+  }, [coordsOrAddress]);
+
+  return { displayText, loading };
+}
+
 export function CommandeCard({ commande, onUpdateStatus }: CommandeCardProps) {
+  const [showConfirmReject, setShowConfirmReject] = useState(false);
+
   const dateObj = commande.createdAt ? new Date(commande.createdAt) : new Date();
   const formattedDate = dateObj.toLocaleDateString('fr-FR', { day: '2-digit', month: 'short' });
   const formattedTime = dateObj.toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit' });
 
-const openNavigation = (adresse: string) => {
-  const encoded = encodeURIComponent(adresse);
-  window.open(`https://www.google.com/maps/dir/?api=1&origin=Current+Location&destination=${encoded}&travelmode=driving`, '_blank');
-};
+  const { displayText: ramassageText, loading: loadingRamassage } = useReverseGeocode(commande.adresse_ramassage);
+  const { displayText: livraisonText, loading: loadingLivraison } = useReverseGeocode(commande.adresse_livraison);
+
+  const openNavigation = (adresse: string) => {
+    const encoded = encodeURIComponent(adresse);
+    window.open(`https://www.google.com/maps/dir/?api=1&origin=Current+Location&destination=${encoded}&travelmode=driving`, '_blank');
+  };
+
+  const handleConfirmReject = () => {
+    if (onUpdateStatus) {
+      onUpdateStatus(commande.id_commande, 'ANNULEE' as StatutCommande);
+    }
+    setShowConfirmReject(false);
+  };
 
   return (
-    <Card className="bg-white rounded-xl shadow-sm transition-all border border-gray-200/70 overflow-hidden p-0 gap-0">
+    <Card className="bg-white rounded-xl shadow-sm transition-all border border-gray-200/70 overflow-hidden p-0 gap-0 relative">
+      {/* --- MODALE DE CONFIRMATION DE REJET --- */}
+      {showConfirmReject && (
+        <div className="absolute inset-0 bg-white/95 backdrop-blur-sm z-20 flex flex-col items-center justify-center p-4 text-center animate-in fade-in duration-200">
+          <div className="p-2 bg-red-100 text-red-600 rounded-full mb-2">
+            <AlertTriangle size={20} />
+          </div>
+          <h4 className="text-xs font-bold text-gray-900 mb-1">Confirmer le rejet de la commande</h4>
+          <p className="text-[11px] text-gray-600 max-w-md mb-3">
+            Vous êtes sur le point de rejeter la commande <span className="font-bold text-gray-900">{commande.reference}</span> ({commande.montant_a_percevoir} F).
+          </p>
+          <div className="flex items-center gap-2">
+            <Button
+              size="sm"
+              variant="outline"
+              onClick={() => setShowConfirmReject(false)}
+              className="h-7 px-3 text-xs rounded-full border-gray-300"
+            >
+              Annuler
+            </Button>
+            <Button
+              size="sm"
+              onClick={handleConfirmReject}
+              className="h-7 px-3 text-xs rounded-full bg-red-600 hover:bg-red-700 text-white font-bold"
+            >
+              Oui, rejeter
+            </Button>
+          </div>
+        </div>
+      )}
+
       {/* --- EN-TÊTE --- */}
       <div className="bg-[#0b3b29] px-3 py-1.5 flex items-center justify-between border-b border-emerald-900/30 w-full">
         <div className="flex items-center gap-2">
@@ -54,8 +126,14 @@ const openNavigation = (adresse: string) => {
                    {commande.client?.nom || commande.client?.prenom || 'Client'} ({commande.telephone_demandeur || commande.client?.telephone || 'N/A'})
                  </span>
               </div>
-              <p className="text-[11px] text-gray-700 truncate mt-0.5">
-                {commande.adresse_ramassage}
+              <p className="text-[11px] text-gray-700 truncate mt-0.5 flex items-center gap-1">
+                {loadingRamassage ? (
+                  <span className="flex items-center gap-1 text-gray-400 italic">
+                    <Loader2 className="animate-spin" size={10} /> Traduction des coordonnées...
+                  </span>
+                ) : (
+                  ramassageText
+                )}
               </p>
             </div>
             <Button
@@ -78,8 +156,14 @@ const openNavigation = (adresse: string) => {
                    {commande.nom_destinataire || 'Destinataire'} ({commande.telephone_destinataire || 'N/A'})
                  </span>
               </div>
-              <p className="text-[11px] text-gray-700 truncate mt-0.5">
-                {commande.adresse_livraison}
+              <p className="text-[11px] text-gray-700 truncate mt-0.5 flex items-center gap-1">
+                {loadingLivraison ? (
+                  <span className="flex items-center gap-1 text-gray-400 italic">
+                    <Loader2 className="animate-spin" size={10} /> Traduction des coordonnées...
+                  </span>
+                ) : (
+                  livraisonText
+                )}
               </p>
             </div>
             <Button
@@ -111,7 +195,7 @@ const openNavigation = (adresse: string) => {
                 <Button
                   variant="outline"
                   size="sm"
-                  onClick={() => onUpdateStatus(commande.id_commande, 'ANNULEE' as StatutCommande)}
+                  onClick={() => setShowConfirmReject(true)}
                   className="h-6 px-3 bg-red-50 hover:bg-red-100 text-red-600 border-red-200 rounded-full text-[10px] font-bold flex items-center gap-1"
                 >
                   <XCircle size={11} /> Rejeter

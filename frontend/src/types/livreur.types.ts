@@ -16,7 +16,17 @@ export interface LivreurCreatePayload {
   immatriculation: string;
 }
   
+export interface LivreurProfilUpdate{
+    nom?: string 
+    prenom?: string
+    telephone?: string
+    email?: string
+    type_vehicule?: VehiculeEnum 
+    immatriculation?: string
+}
 
+
+    
 
 export interface Livreur {
     id: string;

@@ -11,7 +11,8 @@ import { createCommande } from '@/services/commande.service';
 import { CreateCommandePayload } from '@/types/commande.types';
 import { getCurrentUser } from '@/services/auth.service';
 import { LoginResponse } from '@/types/auth.types';
-import { toast } from 'sonner'; // Importation du système de toast Shadcn/Sonner
+import { toast } from 'sonner';
+import { wsService } from '@/lib/socket'; 
 
 export default function ClientDashboard() {
   const [activeTab, setActiveTab] = useState<'send' | 'track' | 'orders'>('send');
@@ -23,6 +24,9 @@ export default function ClientDashboard() {
   useEffect(() => {
     setMounted(true);
     setUser(getCurrentUser());
+
+    // 1. Lancer la connexion WebSocket globale dès que le dashboard s'affiche
+    wsService.connect();
   }, []);
 
   // État global du formulaire de livraison partagé avec l'enfant
@@ -44,7 +48,6 @@ export default function ClientDashboard() {
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault();
 
-    // Vérification des coordonnées GPS obligatoires
     if (!formData.lat_a || !formData.lng_a || !formData.lat_b || !formData.lng_b) {
       toast.error("Coordonnées manquantes", {
         description: "Veuillez sélectionner des points de ramassage et de livraison valides (via GPS ou recherche).",
@@ -55,7 +58,6 @@ export default function ClientDashboard() {
     try {
       setIsSubmitting(true);
 
-      // Construction du payload strict avec le format "longitude latitude"
       const payload: CreateCommandePayload = {
         description: formData.description,
         adresse_ramassage: `${formData.lng_a} ${formData.lat_a}`,
@@ -70,12 +72,10 @@ export default function ClientDashboard() {
       const response = await createCommande(payload);
       console.log("Commande créée avec succès :", response);
 
-      // Notification de succès élégante via Shadcn Toast
       toast.success("Commande enregistrée !", {
         description: "Votre demande de livraison a été envoyée avec succès.",
       });
 
-      // Réinitialisation optionnelle du formulaire après succès
       setFormData({
         point_a: '',
         lat_a: '',
@@ -91,13 +91,11 @@ export default function ClientDashboard() {
         instructions: '',
       });
 
-      // Basculer vers l'onglet des commandes
+      // Basculer vers l'onglet des commandes (instantané, sans détruire le composant)
       setActiveTab('orders');
 
     } catch (error: any) {
       console.error("Erreur lors de la création de la commande :", error);
-      
-      // Récupération intelligente du message d'erreur renvoyé par l'API FastAPI (HTTPException detail)
       const errorMessage = error?.response?.data?.detail || error?.message || "Une erreur est survenue lors de l'envoi de la commande.";
 
       toast.error("Échec de la commande", {
@@ -163,34 +161,40 @@ export default function ClientDashboard() {
           </div>
         </div>
 
-        {/* Contenu selon l'onglet sélectionné */}
-        {activeTab === 'send' && (
-          <form className="w-full space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
-            <DeliveryDetailsForm formData={formData} setFormData={setFormData} />
+        {/* Contenu avec persistance des onglets (display: none/block) */}
+        <div className="w-full">
+          <div className={activeTab === 'send' ? 'block' : 'hidden'}>
+            <form className="w-full space-y-4 sm:space-y-6" onSubmit={handleSubmit}>
+              <DeliveryDetailsForm formData={formData} setFormData={setFormData} />
 
-            <Button
-              type="submit"
-              disabled={isSubmitting}
-              className="w-full h-12 sm:h-14 bg-[#C89D27] hover:bg-[#b08920] text-emerald-950 font-bold text-sm sm:text-base rounded-2xl flex items-center justify-center gap-2 shadow-md border-0 disabled:opacity-50 transition-all cursor-pointer"
-            >
-              {isSubmitting ? (
-                <>
-                  <Loader2 className="animate-spin" size={18} />
-                  Envoi en cours...
-                </>
-              ) : (
-                <>
-                  Envoyer ma demande
-                  <ArrowRight size={18} />
-                </>
-              )}
-            </Button>
-          </form>
-        )}
+              <Button
+                type="submit"
+                disabled={isSubmitting}
+                className="w-full h-12 sm:h-14 bg-[#C89D27] hover:bg-[#b08920] text-emerald-950 font-bold text-sm sm:text-base rounded-2xl flex items-center justify-center gap-2 shadow-md border-0 disabled:opacity-50 transition-all cursor-pointer"
+              >
+                {isSubmitting ? (
+                  <>
+                    <Loader2 className="animate-spin" size={18} />
+                    Envoi en cours...
+                  </>
+                ) : (
+                  <>
+                    Envoyer ma demande
+                    <ArrowRight size={18} />
+                  </>
+                )}
+              </Button>
+            </form>
+          </div>
 
-        {activeTab === 'track' && <TrackingView />}
+          <div className={activeTab === 'track' ? 'block' : 'hidden'}>
+            <TrackingView />
+          </div>
 
-        {activeTab === 'orders' && <OrdersView />}
+          <div className={activeTab === 'orders' ? 'block' : 'hidden'}>
+            <OrdersView />
+          </div>
+        </div>
       </main>
     </div>
   );

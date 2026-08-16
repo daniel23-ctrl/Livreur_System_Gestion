@@ -1,3 +1,5 @@
+from typing import Optional
+
 from pydantic import BaseModel
 from app.models.utilisateur import RoleEnum
 
@@ -12,4 +14,4 @@ class TokenSchema(BaseModel):
     id: str        
     nom: str
     prenom: str
-    telephone : str
+    telephone : Optional[str] = None

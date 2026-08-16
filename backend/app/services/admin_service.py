@@ -84,13 +84,13 @@ async def modifier_admin(db: AsyncSession, id: str, data: ClientUpdate) -> Clien
     return _to_client_response(utilisateur)
 
 
-def _to_client_response(utilisateur: Utilisateur) -> ClientResponse:
-    """Convertit un objet Utilisateur en ClientResponse"""
+def _to_client_response(utilisateur):
     return ClientResponse(
-        id_utilisateur=utilisateur.id,
+        id=utilisateur.id,  
         nom=utilisateur.nom,
         prenom=utilisateur.prenom,
         email=utilisateur.email,
         telephone=utilisateur.telephone,
         role=utilisateur.role
     )
+    

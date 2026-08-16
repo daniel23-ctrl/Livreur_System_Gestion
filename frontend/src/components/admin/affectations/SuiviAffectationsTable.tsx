@@ -10,13 +10,22 @@ import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@
 import { MoreHorizontal, Loader2, Clock, MapPin, Phone, Search, RefreshCw, Filter, ChevronLeft, ChevronRight, Package, Calendar, Globe } from "lucide-react";
 import { DropdownMenu, DropdownMenuContent, DropdownMenuItem, DropdownMenuTrigger } from "@/components/ui/dropdown-menu";
 import { CommandeResponse, CommandeDetails } from "@/types/commande.types";
-import { getAll as getAllCommandes } from "@/services/commande.service";
 import { CommandeDetailsDialog } from "@/components/admin/commandes/CommandeDetailDialog";
-import { toast } from "sonner"; // Assurez-vous d'importer votre librairie de toast (ex: sonner ou useToast)
+import { toast } from "sonner";
 
-export function SuiviAffectationsTable() {
-  const [affectations, setAffectations] = useState<CommandeResponse[]>([]);
-  const [loading, setLoading] = useState(true);
+interface Props {
+  commandes: CommandeResponse[];
+  loading: boolean;
+  onRefresh: () => void;
+  onCommandeUpdated?: () => Promise<void> | void;
+}
+
+export function SuiviAffectationsTable({
+  commandes,
+  loading,
+  onRefresh,
+  onCommandeUpdated,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState("");
   const [statusFilter, setStatusFilter] = useState<string>("TOUS");
   
@@ -31,25 +40,8 @@ export function SuiviAffectationsTable() {
   const [selectedCommande, setSelectedCommande] = useState<CommandeDetails | null>(null);
   const [isDetailsOpen, setIsDetailsOpen] = useState(false);
 
-  const fetchAffectations = async () => {
-    try {
-      setLoading(true);
-      const data = await getAllCommandes();
-      const coursesActives = data.filter((cmd) => cmd.id_livreur || cmd.livreur);
-      
-      // Inversion de la liste pour afficher les plus récentes en premier
-      setAffectations(coursesActives.reverse());
-    } catch (error) {
-      console.error("Erreur lors du chargement du suivi des courses :", error);
-      toast.error("Erreur lors du chargement du suivi des courses.");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchAffectations();
-  }, []);
+  // Filtrer uniquement les courses actives (qui ont un livreur assigné) et les inverser (les plus récentes en haut)
+  const affectations = [...commandes.filter((cmd) => cmd.id_livreur || cmd.livreur)].reverse();
 
   // Réinitialiser la page courante lors d'une recherche, changement de filtre, de période ou de nombre d'éléments
   useEffect(() => {
@@ -90,7 +82,7 @@ export function SuiviAffectationsTable() {
     // Filtre de période (Aujourd'hui vs Global)
     let matchesPeriode = true;
     if (periode === "AUJOURDHUI" && row.createdAt) {
-      const todayStr = new Date().toISOString().split('T')[0]; // Format YYYY-MM-DD
+      const todayStr = new Date().toISOString().split('T')[0];
       const cmdDate = row.createdAt.split('T')[0];
       matchesPeriode = cmdDate === todayStr;
     }
@@ -103,16 +95,16 @@ export function SuiviAffectationsTable() {
   const startIndex = (currentPage - 1) * itemsPerPage;
   const currentItems = filteredAffectations.slice(startIndex, startIndex + itemsPerPage);
 
-  // Gestionnaire enveloppant le succès d'une affectation (pour le Toast + Refresh)
   const handleCommandeUpdatedSuccess = async () => {
     toast.success("Livreur affecté avec succès !");
-    await fetchAffectations();
+    if (onCommandeUpdated) {
+      await onCommandeUpdated();
+    }
   };
 
   return (
     <>
       <Card className="border-gray-100 shadow-xs pt-0 mt-3 overflow-hidden rounded-xl">
-        {/* En-tête vert émeraude professionnel et interactif */}
         <CardHeader className="py-4 px-4 bg-[#0B3B29] space-y-3">
           <div className="flex flex-col sm:flex-row justify-between items-start sm:items-center gap-3">
             <div className="flex items-center gap-2.5">
@@ -128,28 +120,22 @@ export function SuiviAffectationsTable() {
             </div>
 
             <div className="flex items-center gap-2 w-full sm:w-auto justify-between sm:justify-end">
-              {/* Switch Période : Aujourd'hui / Global (Harmonisé en Vert) */}
               <div className="flex items-center bg-white/10 p-0.5 rounded-lg border border-white/20">
                 <button
                   type="button"
                   onClick={() => setPeriode("AUJOURDHUI")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
-                    periode === "AUJOURDHUI"
-                      ? "bg-white text-[#0B3B29] shadow-xs"
-                      : "text-white/80 hover:text-white"
+                    periode === "AUJOURDHUI" ? "bg-white text-[#0B3B29] shadow-xs" : "text-white/85 hover:text-white"
                   }`}
                 >
                   <Calendar className="w-3 h-3" />
                   Aujourd'hui
                 </button>
-
                 <button
                   type="button"
                   onClick={() => setPeriode("GLOBAL")}
                   className={`flex items-center gap-1.5 px-2.5 py-1 rounded-md text-[11px] font-bold transition-all ${
-                    periode === "GLOBAL"
-                      ? "bg-white text-[#0B3B29] shadow-xs"
-                      : "text-white/80 hover:text-white"
+                    periode === "GLOBAL" ? "bg-white text-[#0B3B29] shadow-xs" : "text-white/85 hover:text-white"
                   }`}
                 >
                   <Globe className="w-3 h-3" />
@@ -157,11 +143,10 @@ export function SuiviAffectationsTable() {
                 </button>
               </div>
 
-              {/* Bouton de rafraîchissement rapide */}
               <Button
                 variant="outline"
                 size="sm"
-                onClick={fetchAffectations}
+                onClick={onRefresh}
                 disabled={loading}
                 className="h-8 bg-white/10 hover:bg-white/20 text-white border-white/20 text-[11px] gap-1.5"
               >
@@ -171,7 +156,6 @@ export function SuiviAffectationsTable() {
             </div>
           </div>
 
-          {/* Barre de recherche et filtres rapides */}
           <div className="flex flex-col gap-2 pt-1">
             <div className="relative w-full">
               <Search className="absolute left-2.5 top-1/2 -translate-y-1/2 w-3.5 h-3.5 text-gray-300" />
@@ -183,93 +167,31 @@ export function SuiviAffectationsTable() {
               />
             </div>
 
-            {/* Filtres par statut rapides */}
             <div className="flex items-center gap-1.5 overflow-x-auto pb-1">
               <Filter className="w-3.5 h-3.5 text-[#DCA524] shrink-0 ml-1 hidden sm:block" />
               
-              <Button
-                type="button"
-                variant={statusFilter === "TOUS" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("TOUS")}
-                className={`text-[10px] h-7 px-2.5 py-1 rounded-md font-medium transition-colors shrink-0 ${
-                  statusFilter === "TOUS"
-                    ? "bg-[#DCA524] hover:bg-[#c39120] text-white font-semibold border-0"
-                    : "bg-white/10 hover:bg-white/20 text-white/80 border-white/20"
-                }`}
-              >
-                Tous
-              </Button>
-
-              <Button
-                type="button"
-                variant={statusFilter === "ASSIGNEE" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("ASSIGNEE")}
-                className={`text-[10px] h-7 px-2.5 py-1 rounded-md font-medium transition-colors shrink-0 ${
-                  statusFilter === "ASSIGNEE"
-                    ? "bg-[#DCA524] hover:bg-[#c39120] text-white font-semibold border-0"
-                    : "bg-white/10 hover:bg-white/20 text-white/80 border-white/20"
-                }`}
-              >
-                Assignées
-              </Button>
-
-              <Button
-                type="button"
-                variant={statusFilter === "EN_COURS_DE_COLLECTE" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("EN_COURS_DE_COLLECTE")}
-                className={`text-[10px] h-7 px-2.5 py-1 rounded-md font-medium transition-colors shrink-0 ${
-                  statusFilter === "EN_COURS_DE_COLLECTE"
-                    ? "bg-[#DCA524] hover:bg-[#c39120] text-white font-semibold border-0"
-                    : "bg-white/10 hover:bg-white/20 text-white/80 border-white/20"
-                }`}
-              >
-                En collecte
-              </Button>
-
-              <Button
-                type="button"
-                variant={statusFilter === "EN_COURS_DE_LIVRAISON" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("EN_COURS_DE_LIVRAISON")}
-                className={`text-[10px] h-7 px-2.5 py-1 rounded-md font-medium transition-colors shrink-0 ${
-                  statusFilter === "EN_COURS_DE_LIVRAISON"
-                    ? "bg-[#DCA524] hover:bg-[#c39120] text-white font-semibold border-0"
-                    : "bg-white/10 hover:bg-white/20 text-white/80 border-white/20"
-                }`}
-              >
-                En livraison
-              </Button>
-
-              <Button
-                type="button"
-                variant={statusFilter === "LIVREE" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("LIVREE")}
-                className={`text-[10px] h-7 px-2.5 py-1 rounded-md font-medium transition-colors shrink-0 ${
-                  statusFilter === "LIVREE"
-                    ? "bg-[#DCA524] hover:bg-[#c39120] text-white font-semibold border-0"
-                    : "bg-white/10 hover:bg-white/20 text-white/80 border-white/20"
-                }`}
-              >
-                Livrées
-              </Button>
-
-              <Button
-                type="button"
-                variant={statusFilter === "ANNULEE" ? "default" : "outline"}
-                size="sm"
-                onClick={() => setStatusFilter("ANNULEE")}
-                className={`text-[10px] h-7 px-2.5 py-1 rounded-md font-medium transition-colors shrink-0 ${
-                  statusFilter === "ANNULEE"
-                    ? "bg-[#DCA524] hover:bg-[#c39120] text-white font-semibold border-0"
-                    : "bg-white/10 hover:bg-white/20 text-white/80 border-white/20"
-                }`}
-              >
-                Annulées
-              </Button>
+              {[
+                { id: "TOUS", label: "Tous" },
+                { id: "ASSIGNEE", label: "Assignées" },
+                { id: "EN_COURS_DE_COLLECTE", label: "En collecte" },
+                { id: "EN_COURS_DE_LIVRAISON", label: "En livraison" },
+                { id: "LIVREE", label: "Livrées" },
+                { id: "ANNULEE", label: "Annulées" },
+              ].map((filter) => (
+                <Button
+                  key={filter.id}
+                  type="button"
+                  size="sm"
+                  onClick={() => setStatusFilter(filter.id)}
+                  className={`text-[10px] h-7 px-2.5 py-1 rounded-md font-medium transition-colors shrink-0 ${
+                    statusFilter === filter.id
+                      ? "bg-[#DCA524] hover:bg-[#c39120] text-white font-semibold border-0"
+                      : "bg-white/10 hover:bg-white/20 text-white/85 border-white/20"
+                  }`}
+                >
+                  {filter.label}
+                </Button>
+              ))}
             </div>
           </div>
         </CardHeader>
@@ -294,26 +216,14 @@ export function SuiviAffectationsTable() {
                 </TableHeader>
                 <TableBody>
                   {currentItems.map((row) => {
-                    const clientNom = row.client 
-                      ? `${row.client.prenom || ""} ${row.client.nom || ""}`.trim() 
-                      : "Client direct";
-                    
+                    const clientNom = row.client ? `${row.client.prenom || ""} ${row.client.nom || ""}`.trim() : "Client direct";
                     const clientTel = row.client?.telephone || row.telephone_demandeur || "Non renseigné";
                     const telephoneDestinataire = row.telephone_destinataire || "Non renseigné";
-
-                    const livreurNom = row.livreur 
-                      ? `${row.livreur.prenom || ""} ${row.livreur.nom || ""}`.trim() 
-                      : "Livreur assigné";
-
+                    const livreurNom = row.livreur ? `${row.livreur.prenom || ""} ${row.livreur.nom || ""}`.trim() : "Livreur assigné";
                     const livreurTel = row.livreur?.telephone || "Non renseigné";
 
-                    const dateFormatee = row.createdAt 
-                      ? new Date(row.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) 
-                      : "-";
-
-                    const heureFormatee = row.createdAt 
-                      ? new Date(row.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }) 
-                      : "-";
+                    const dateFormatee = row.createdAt ? new Date(row.createdAt).toLocaleDateString('fr-FR', { day: '2-digit', month: '2-digit', year: 'numeric' }) : "-";
+                    const heureFormatee = row.createdAt ? new Date(row.createdAt).toLocaleTimeString('fr-FR', { hour: '2-digit', minute: '2-digit', hour12: false }) : "-";
 
                     return (
                       <TableRow 
@@ -325,9 +235,7 @@ export function SuiviAffectationsTable() {
                         className="hover:bg-gray-50/80 cursor-pointer transition-colors"
                       >
                         <TableCell className="py-3">
-                          <div className="font-semibold text-[11px] text-[#0B3B29]">
-                            {row.reference}
-                          </div>
+                          <div className="font-semibold text-[11px] text-[#0B3B29]">{row.reference}</div>
                           <div className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5 truncate max-w-[180px]">
                             <MapPin className="w-3 h-3 text-gray-400 shrink-0" /> 
                             <span className="truncate">{row.adresse_livraison || "Destination non spécifiée"}</span>
@@ -339,9 +247,7 @@ export function SuiviAffectationsTable() {
                         </TableCell>
 
                         <TableCell className="py-3">
-                          <div className="text-[11px] text-gray-700 font-medium">
-                            {clientNom}
-                          </div>
+                          <div className="text-[11px] text-gray-700 font-medium">{clientNom}</div>
                           <div className="text-[10px] text-gray-400 flex items-center gap-1 mt-0.5">
                             <Phone className="w-2.5 h-2.5 text-[#DCA524] shrink-0" /> 
                             <span>{clientTel}</span>
@@ -349,9 +255,7 @@ export function SuiviAffectationsTable() {
                         </TableCell>
 
                         <TableCell className="py-3">
-                          <div className="text-[11px] text-gray-800 font-semibold">
-                            {livreurNom}
-                          </div>
+                          <div className="text-[11px] text-gray-800 font-semibold">{livreurNom}</div>
                           <div className="text-[10px] text-gray-500 flex items-center gap-1 mt-0.5">
                             <Phone className="w-2.5 h-2.5 text-[#DCA524] shrink-0" /> 
                             <span>{livreurTel}</span>
@@ -359,9 +263,7 @@ export function SuiviAffectationsTable() {
                         </TableCell>
 
                         <TableCell className="py-3">
-                          <div className="text-[11px] text-gray-700 font-medium">
-                            {dateFormatee}
-                          </div>
+                          <div className="text-[11px] text-gray-700 font-medium">{dateFormatee}</div>
                           <div className="text-[10px] text-gray-500 flex items-center gap-1.5 mt-0.5">
                             <Clock className="w-3 h-3 text-[#DCA524] shrink-0" />
                             <span>{heureFormatee}</span>
@@ -376,17 +278,21 @@ export function SuiviAffectationsTable() {
 
                         <TableCell className="text-right" onClick={(e) => e.stopPropagation()}>
                           <DropdownMenu>
-                            <DropdownMenuTrigger asChild>
+                            <DropdownMenuTrigger >
                               <Button variant="ghost" className="h-7 w-7 p-0 hover:bg-gray-100">
                                 <MoreHorizontal className="h-4 w-4 text-gray-500" />
                               </Button>
                             </DropdownMenuTrigger>
                             <DropdownMenuContent align="end" className="text-xs">
-                              <DropdownMenuItem onClick={() => alert(`Téléphone livreur : ${livreurTel}`)}>
+                              <DropdownMenuItem onClick={() => toast.info(`Téléphone livreur : ${livreurTel}`)}>
                                 Contacter Livreur
                               </DropdownMenuItem>
-                              <DropdownMenuItem>Réassigner</DropdownMenuItem>
-                              <DropdownMenuItem className="text-red-600 focus:text-red-600">Annuler l'affectation</DropdownMenuItem>
+                              <DropdownMenuItem onClick={() => {
+                                setSelectedCommande(row as unknown as CommandeDetails);
+                                setIsDetailsOpen(true);
+                              }}>
+                                Réassigner
+                              </DropdownMenuItem>
                             </DropdownMenuContent>
                           </DropdownMenu>
                         </TableCell>
@@ -396,7 +302,7 @@ export function SuiviAffectationsTable() {
                 </TableBody>
               </Table>
 
-              {/* Barre de pagination */}
+              {/* Pagination */}
               <div className="flex flex-col sm:flex-row items-center justify-between px-4 py-3 border-t border-gray-100 bg-gray-50/30 gap-3">
                 <div className="flex items-center gap-3">
                   <div className="text-[11px] text-gray-500">
@@ -405,10 +311,7 @@ export function SuiviAffectationsTable() {
 
                   <div className="flex items-center gap-1.5">
                     <span className="text-[11px] text-gray-500 hidden md:inline">Lignes :</span>
-                    <Select
-                      value={String(itemsPerPage)}
-                      onValueChange={(val) => setItemsPerPage(Number(val))}
-                    >
+                    <Select value={String(itemsPerPage)} onValueChange={(val) => setItemsPerPage(Number(val))}>
                       <SelectTrigger className="h-7 w-[70px] text-[11px]">
                         <SelectValue placeholder={String(itemsPerPage)} />
                       </SelectTrigger>
@@ -460,7 +363,6 @@ export function SuiviAffectationsTable() {
         </CardContent>
       </Card>
 
-      {/* Intégration du modal de détails avec gestion du rafraîchissement et du toast de succès */}
       <CommandeDetailsDialog
         commande={selectedCommande}
         open={isDetailsOpen}

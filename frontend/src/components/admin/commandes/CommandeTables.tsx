@@ -195,7 +195,7 @@ export default function CommandesTable({
   );
 
   const table = useReactTable({
-    data: commandes,
+    data: React.useMemo(() => [...commandes].reverse(), [commandes]), // <-- Inversion des données ici
     columns,
     getCoreRowModel: getCoreRowModel(),
     getPaginationRowModel: getPaginationRowModel(),
@@ -228,7 +228,7 @@ export default function CommandesTable({
           
           <TooltipProvider>
             <Tooltip>
-              <TooltipTrigger >
+              <TooltipTrigger>
                 <Button
                   variant="outline"
                   size="sm"
@@ -240,7 +240,7 @@ export default function CommandesTable({
                   <span className="sm:hidden text-xs">Actualiser</span>
                 </Button>
               </TooltipTrigger>
-              <TooltipContent className="bg-gray-50 border text-emerald-950 border-gray-200  text-[10px] sm:text-xs">
+              <TooltipContent className="bg-gray-50 border text-emerald-950 border-gray-200 text-[10px] sm:text-xs">
                 <p>Dernière mise à jour : {lastRefresh.toLocaleTimeString("fr-FR")}</p>
               </TooltipContent>
             </Tooltip>

@@ -73,6 +73,7 @@ export default function ChangeMotDePasse() {
                     <Lock className="w-4 h-4 text-[#DCA524]" /> Modifier le mot de passe
                 </Button>
             </DialogTrigger>
+            
             <DialogContent className="sm:max-w-md overflow-hidden p-0 bg-white">
                 <form onSubmit={handleSubmit}>
                     {/* En-tête coloré en jaune doré avec gestion du fond et du padding */}

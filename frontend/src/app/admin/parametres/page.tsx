@@ -1,34 +1,33 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState, useEffect } from "react";
 import { Settings, User, Building, Save, ShieldCheck, Pencil, X } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Switch } from "@/components/ui/switch";
 import { Label } from "@/components/ui/label";
-import { getCurrentUser } from "@/services/auth.service";
-import { getAdminById, updateAdminProfile } from "@/services/admin.service";
-import { ClientResponse, ClientUpdate } from "@/types/auth.types";
+import { updateAdminProfile } from "@/services/admin.service";
+import { ClientUpdate } from "@/types/auth.types";
 import { toast } from "sonner";
 import ChangeMotDePasse from "@/components/admin/parametres/ChangeMotDePasse";
+import { useAdmin } from "@/contexts/AdminContext"; 
 
 export default function ParametresSysteme() {
+  const { adminProfile, role, chargerDonnees } = useAdmin(); // Utilisation du contexte global
+
   const [loading, setLoading] = useState(false);
-  const [fetching, setFetching] = useState(true);
 
   // États d'édition pour chaque section
   const [isEditingProfil, setIsEditingProfil] = useState(false);
   const [isEditingSysteme, setIsEditingSysteme] = useState(false);
 
-  // État pour les paramètres personnels
-  const [profil, setProfil] = useState<ClientUpdate & Partial<ClientResponse>>({
+  // État local pour les paramètres personnels synchronisé avec le contexte
+  const [profil, setProfil] = useState<ClientUpdate>({
     nom: "",
     prenom: "",
     email: "",
     telephone: "",
   });
-
-  const [role, setRole] = useState<string>("");
 
   // État pour les paramètres système basiques
   const [systeme, setSysteme] = useState({
@@ -36,41 +35,17 @@ export default function ParametresSysteme() {
     modeMaintenance: false,
   });
 
-  // Charger les informations de l'admin connecté
-  const fetchAdminData = useCallback(async () => {
-    const user = getCurrentUser();
-    if (!user || !user.id) {
-      setFetching(false);
-      return;
-    }
-
-    setRole(user.role || "");
-
-    try {
-      const data: ClientResponse = await getAdminById(user.id);
-      setProfil({
-        nom: data.nom || user.nom || "",
-        prenom: data.prenom || user.prenom || "",
-        email: data.email || "",
-        telephone: data.telephone || "",
-      });
-    } catch (error) {
-      console.error("Erreur API getAdminById:", error);
-      toast.error("Impossible de joindre le serveur pour vos informations");
-      setProfil({
-        nom: user.nom || "",
-        prenom: user.prenom || "",
-        email: "",
-        telephone: "",
-      });
-    } finally {
-      setFetching(false);
-    }
-  }, []);
-
+  // Met à jour l'état local du profil dès que adminProfile change dans le contexte
   useEffect(() => {
-    fetchAdminData();
-  }, [fetchAdminData]);
+    if (adminProfile) {
+      setProfil({
+        nom: adminProfile.nom || "",
+        prenom: adminProfile.prenom || "",
+        email: adminProfile.email || "",
+        telephone: adminProfile.telephone || "",
+      });
+    }
+  }, [adminProfile]);
 
   const handleProfilChange = (field: keyof ClientUpdate, value: string) => {
     setProfil((prev) => ({ ...prev, [field]: value }));
@@ -83,7 +58,7 @@ export default function ParametresSysteme() {
   // Enregistrement des modifications du profil
   const handleSaveProfil = async (e: React.FormEvent) => {
     e.preventDefault();
-    if (loading) return; // Empêche les soumissions multiples
+    if (loading) return;
     
     setLoading(true);
 
@@ -98,6 +73,9 @@ export default function ParametresSysteme() {
       await updateAdminProfile(payload);
       toast.success("Profil mis à jour avec succès !");
       setIsEditingProfil(false);
+      
+      // Recharge les données globales pour synchroniser instantanément l'interface
+      await chargerDonnees(false);
     } catch (error: any) {
       console.error("Erreur mise à jour profil:", error);
       const errorMsg = error.response?.data?.detail || "Erreur lors de la mise à jour du profil.";
@@ -118,14 +96,6 @@ export default function ParametresSysteme() {
       toast.success("Paramètres système mis à jour avec succès !");
     }, 800);
   };
-
-  if (fetching) {
-    return (
-      <div className="p-12 text-center text-emrold-950 ">
-        Chargement des paramètres...
-      </div>
-    );
-  }
 
   return (
     <div className="p-6 space-y-6 max-w-4xl mx-auto">
@@ -149,7 +119,7 @@ export default function ParametresSysteme() {
       <div className="space-y-6">
         {/* Section 1 : Paramètres Personnels */}
         <form onSubmit={handleSaveProfil} className="bg-white rounded-2xl border border-slate-100 shadow-xl overflow-hidden p-6 space-y-5 relative">
-          <div className="absolute top-6 right-6 flex items-center  gap-2 flex-wrap justify-end">
+          <div className="absolute top-6 right-6 flex items-center gap-2 flex-wrap justify-end">
             {isEditingProfil && (
               <Button
                 type="submit"
@@ -198,7 +168,7 @@ export default function ParametresSysteme() {
                 value={profil.nom || ""}
                 disabled={!isEditingProfil}
                 onChange={(e) => handleProfilChange("nom", e.target.value)}
-                className={isEditingProfil ? "bg-slate-50/50 border-slate-200 p-2" : " p-2 bg-slate-100 border-slate-200 text-emrold-950 cursor-not-allowed"}
+                className={isEditingProfil ? "bg-slate-50/50 border-slate-200 p-2" : "p-2 bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed"}
               />
             </div>
             <div className="space-y-2">
@@ -208,7 +178,7 @@ export default function ParametresSysteme() {
                 value={profil.prenom || ""}
                 disabled={!isEditingProfil}
                 onChange={(e) => handleProfilChange("prenom", e.target.value)}
-                className={isEditingProfil ? "bg-slate-50/50 border-slate-200" : "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed"}
+                className={isEditingProfil ? "bg-slate-50/50 border-slate-200 p-2" : "p-2 bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed"}
               />
             </div>
             <div className="space-y-2">
@@ -219,7 +189,7 @@ export default function ParametresSysteme() {
                 value={profil.email || ""}
                 disabled={!isEditingProfil}
                 onChange={(e) => handleProfilChange("email", e.target.value)}
-                className={isEditingProfil ? "bg-slate-50/50 border-slate-200" : "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed"}
+                className={isEditingProfil ? "bg-slate-50/50 border-slate-200 p-2" : "p-2 bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed"}
               />
             </div>
             <div className="space-y-2">
@@ -229,7 +199,7 @@ export default function ParametresSysteme() {
                 value={profil.telephone || ""}
                 disabled={!isEditingProfil}
                 onChange={(e) => handleProfilChange("telephone", e.target.value)}
-                className={isEditingProfil ? "bg-slate-50/50 border-slate-200" : "bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed"}
+                className={isEditingProfil ? "bg-slate-50/50 border-slate-200 p-2" : "p-2 bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed"}
               />
             </div>
 
@@ -241,7 +211,7 @@ export default function ParametresSysteme() {
                 id="role"
                 value={role}
                 disabled
-                className="bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed font-medium uppercase text-xs tracking-wider"
+                className="bg-slate-100 border-slate-200 text-slate-500 cursor-not-allowed font-medium uppercase text-xs tracking-wider p-2"
               />
             </div>
           </div>
@@ -298,7 +268,7 @@ export default function ParametresSysteme() {
                 value={systeme.nomEntreprise}
                 disabled={!isEditingSysteme}
                 onChange={(e) => handleSystemeChange("nomEntreprise", e.target.value)}
-                className={isEditingSysteme ? "bg-slate-50/50 border-slate-200 " : " bg-slate-100 border-slate-200 text-slate-600 cursor-not-allowed"}
+                className={isEditingSysteme ? "bg-slate-50/50 border-slate-200 p-2" : "p-2 bg-slate-100 border-slate-200 text-slate-700 cursor-not-allowed"}
               />
             </div>
 

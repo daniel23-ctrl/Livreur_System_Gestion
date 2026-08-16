@@ -13,9 +13,12 @@ const API = {
   livreurs: {
     base: "/api/livreurs",
     disponibles: "/api/livreurs/disponibles",
-    actifs : "/api/livreurs/actifs",
+    actifs: "/api/livreurs/actifs",
+    connectes: "/api/livreurs/connectes",
     inactifs: "/api/livreurs/inactifs",
     moi: "/api/livreurs/moi",
+    modifierMonProfil: "/api/livreurs/moi", // <--- Route dédiée pour le livreur connecté
+    changerMotDePasse: "/api/livreurs/moi/mot-de-passe", // <--- Route dédiée pour le mot de passe
     modifier: (id: string) => `/api/livreurs/${id}`,
     detail: (id: string) => `/api/livreurs/${id}`,
     supprimer: (id: string) => `/api/livreurs/${id}`,

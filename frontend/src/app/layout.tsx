@@ -2,7 +2,7 @@ import type { Metadata } from "next";
 import { Inter, Playfair_Display } from "next/font/google";
 import { TooltipProvider } from "@/components/ui/tooltip";
 import { Toaster } from "sonner";
-import Providers from "@/components/providers"; // <-- On importe ton fichier providers
+import Providers from "@/components/providers"; 
 import "./globals.css";
 
 const inter = Inter({

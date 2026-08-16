@@ -3,6 +3,11 @@ from pydantic import BaseModel, ConfigDict
 from app.models.commande import StatutCommandeEnum
 from app.schemas.livreur import LivreurResponse as LivreurInfo
 
+
+class StatutUpdatePayload(BaseModel):
+    nouveau_statut: StatutCommandeEnum
+    
+    
 class ClientResponse(BaseModel):
     id_utilisateur: str
     nom: str

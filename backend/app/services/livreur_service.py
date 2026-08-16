@@ -1,12 +1,14 @@
 from fastapi import HTTPException, status
 from sqlalchemy.exc import IntegrityError
 from sqlalchemy.ext.asyncio import AsyncSession
-from sqlalchemy import select
+from sqlalchemy import select, or_
 from app.models.utilisateur import Utilisateur, RoleEnum
-from app.schemas.livreur import LivreurCreate, LivreurProfilUpdate, LivreurResponse, LivreurUpdate
+from app.schemas.livreur import ChangerMotDePasseSchema, LivreurCreate, LivreurProfilUpdate, LivreurResponse, LivreurUpdate
 from app.core.security import hacher_mot_de_passe
 from sqlalchemy.orm import selectinload, joinedload
 from app.models.livreur import Livreur, EtatActiviteEnum
+from app.core.security import verifier_mot_de_passe, hacher_mot_de_passe
+
 
 def _to_livreur_response(livreur: Livreur) -> LivreurResponse:
     """Convertit un objet SQLAlchemy Livreur (avec sa relation utilisateur) en schéma Pydantic"""
@@ -97,11 +99,14 @@ async def lister_livreurs_actifs(db: AsyncSession) -> list[LivreurResponse]:
     livreurs = resultat.scalars().all()
     return [_to_livreur_response(l) for l in livreurs]
 
-async def lister_livreurs_disponibles(db: AsyncSession) -> list[LivreurResponse]:
+async def lister_livreurs_connectes(db: AsyncSession) -> list[LivreurResponse]:
     resultat = await db.execute(
         select(Livreur).where(
             Livreur.est_actif == True,
-            Livreur.etat_activite == EtatActiviteEnum.DISPONIBLE
+            or_(
+                Livreur.etat_activite == EtatActiviteEnum.DISPONIBLE,
+                Livreur.etat_activite == EtatActiviteEnum.EN_COURSE
+            )
         ).options(
             selectinload(Livreur.utilisateur)
         )
@@ -190,7 +195,7 @@ async def modifier_mon_profil(db: AsyncSession, id: str, data: LivreurProfilUpda
 
     return _to_livreur_response(livreur)
 
-async def archiver_livreur(db: AsyncSession, id: str) -> dict | None:
+async def archiver_livreur(db: AsyncSession, id: str) -> LivreurResponse | None:
     """Archive un livreur — soft delete"""
     livreur_profil = await db.execute(
         select(Livreur).where(Livreur.id_livreur == id).options(selectinload(Livreur.utilisateur))
@@ -204,12 +209,12 @@ async def archiver_livreur(db: AsyncSession, id: str) -> dict | None:
     profil.etat_activite = EtatActiviteEnum.HORS_LIGNE
 
     await db.commit()
+    await db.refresh(profil)
+    await db.refresh(profil.utilisateur)
     
-    return {
-        "message": "Livreur archivé avec succès",
-    }
+    return _to_livreur_response(profil)
 
-async def modifier_livreur(db: AsyncSession, id: str, data: LivreurUpdate) -> LivreurResponse | None:
+async def modifier_livreur(db: AsyncSession, id: str, data: LivreurProfilUpdate) -> LivreurResponse | None:
     """Admin modifie les infos d'un livreur"""
     resultat = await db.execute(
         select(Livreur).where(Livreur.id_livreur == id)
@@ -292,3 +297,26 @@ async def retaurer_livreur(db: AsyncSession, id: str) -> LivreurResponse | None:
     await db.refresh(profil.utilisateur)
     
     return _to_livreur_response(profil)
+
+async def modifier_mot_de_passe_livreur(db: AsyncSession, id_utilisateur: str, data: ChangerMotDePasseSchema) -> bool:
+    """Permet à un livreur de modifier son mot de passe en vérifiant l'ancien"""
+    resultat = await db.execute(
+        select(Utilisateur).where(Utilisateur.id == id_utilisateur)
+    )
+    utilisateur = resultat.scalar_one_or_none()
+
+    if not utilisateur:
+        raise HTTPException(status_code=404, detail="Utilisateur non trouvé.")
+
+    # Vérifier si l'ancien mot de passe est correct
+    if not verifier_mot_de_passe(data.ancien_mot_de_passe, utilisateur.mot_de_passe):
+        raise HTTPException(
+            status_code=status.HTTP_400_BAD_REQUEST,
+            detail="L'ancien mot de passe est incorrect."
+        )
+
+    # Hacher et enregistrer le nouveau mot de passe
+    utilisateur.mot_de_passe = hacher_mot_de_passe(data.nouveau_mot_de_passe)
+    
+    await db.commit()
+    return True

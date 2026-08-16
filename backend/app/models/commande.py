@@ -11,6 +11,7 @@ class StatutCommandeEnum(str, enum.Enum):
     EN_COURS_DE_COLLECTE = "EN_COURS_DE_COLLECTE"
     EN_COURS_DE_LIVRAISON = "EN_COURS_DE_LIVRAISON"
     LIVREE = "LIVREE"
+    ANNULEE = "ANNULEE"
 
 class Commande(Base):
     __tablename__ = "commandes"

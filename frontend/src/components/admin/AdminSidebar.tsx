@@ -1,5 +1,5 @@
 "use client";
-
+import Image from "next/image";
 import { useState, useEffect } from "react";
 import Link from "next/link";
 import { usePathname } from "next/navigation";
@@ -107,15 +107,13 @@ export default function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
       <Link
         href={item.href}
         onClick={onCloseMobile} // Ferme automatiquement le menu au clic sur mobile
-        className={`flex items-center gap-3 rounded-xl transition-all ${
-          collapsed
+        className={`flex items-center gap-3 rounded-xl transition-all ${collapsed
             ? "w-10 h-10 justify-center p-0"
             : "px-3.5 py-2.5 justify-between w-full"
-        } ${
-          active
+          } ${active
             ? "bg-[#d4a017] text-emerald-950 font-bold shadow-sm"
             : "text-emerald-100/70 hover:bg-emerald-900/40 hover:text-white"
-        }`}
+          }`}
       >
         <div className="flex items-center gap-2.5">
           <Icon className="w-5 h-5 shrink-0" />
@@ -129,11 +127,10 @@ export default function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
         {/* Badge */}
         {item.badge !== undefined && item.badge > 0 && !collapsed && (
           <Badge
-            className={`text-[10px] px-1.5 py-0.5 rounded-md border-0 shadow-none shrink-0 ${
-              active
+            className={`text-[10px] px-1.5 py-0.5 rounded-md border-0 shadow-none shrink-0 ${active
                 ? "bg-emerald-950/20 text-emerald-950 font-bold"
                 : "bg-emerald-900 text-emerald-200"
-            }`}
+              }`}
           >
             {item.badge}
           </Badge>
@@ -151,15 +148,13 @@ export default function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
   return (
     <TooltipProvider delay={100}>
       <aside
-        className={`relative flex flex-col h-screen text-white bg-[#0b3b29] transition-all duration-300 shrink-0 ${
-          collapsed ? "w-20" : "w-64"
-        }`}
+        className={`relative flex flex-col h-screen text-white bg-[#0b3b29] transition-all duration-300 shrink-0 ${collapsed ? "w-20" : "w-64"
+          }`}
       >
         {/* En-tête / Logo + Boutons d'action */}
         <div
-          className={`flex items-center py-4 ${
-            collapsed ? "justify-center px-2" : "justify-between px-4"
-          }`}
+          className={`flex items-center py-4 ${collapsed ? "justify-center px-2" : "justify-between px-4"
+            }`}
         >
           {collapsed ? (
             <NavTooltip label="Ouvrir le menu">
@@ -175,15 +170,23 @@ export default function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
           ) : (
             <>
               <div className="flex items-center gap-3">
-                <div className="w-9 h-9 rounded-xl bg-[#d4a017] flex items-center justify-center shrink-0 shadow-sm">
-                  <Truck className="w-5 h-5 text-emerald-950" />
-                </div>
+                    <div className="p-1 rounded-xl justify-center">
+                      <Image
+                        src="/KusiLogo.png"
+                        alt="Logo Kusi Livraison"
+                        width={48}
+                        height={48}
+                        className="w-full h-full object-contain"
+                      />
+                    </div>
+                    
+                  
                 <div className="min-w-0">
                   <p className="text-white font-bold text-sm leading-tight truncate">
                     KUSI
                   </p>
                   <p className="text-[11px] text-emerald-200/70 truncate">
-                    Gestion Livraisons
+                    Portail ADMINISTRATEUR
                   </p>
                 </div>
               </div>
@@ -240,11 +243,10 @@ export default function AdminSidebar({ onCloseMobile }: AdminSidebarProps) {
 
           {/* Section Profil Utilisateur */}
           <div
-            className={`flex items-center rounded-xl transition-all ${
-              collapsed
+            className={`flex items-center rounded-xl transition-all ${collapsed
                 ? "justify-center p-1 bg-transparent"
                 : "gap-3 px-3 py-2.5 bg-emerald-900/40 border border-emerald-800/50"
-            }`}
+              }`}
           >
             <NavTooltip label={`${userName} (Administratrice)`}>
               <Avatar className="w-9 h-9 shrink-0 cursor-pointer bg-[#d4a017] text-emerald-950 font-bold">
