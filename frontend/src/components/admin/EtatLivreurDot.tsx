@@ -1,4 +1,4 @@
-import { EtatActiviteEnum } from "@/types/admin.types";
+import { EtatActiviteEnum } from "@/types/livreur.types"
 
 const CONFIG: Record<EtatActiviteEnum, { color: string; label: string }> = {
   DISPONIBLE: { color: "#16A34A", label: "Disponible" },

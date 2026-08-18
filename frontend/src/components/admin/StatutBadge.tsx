@@ -1,4 +1,4 @@
-import { StatutCommande } from "@/types/admin.types";
+import { StatutCommande } from "@/types/commande.types";
 
 const CONFIG: Record<
   StatutCommande,
