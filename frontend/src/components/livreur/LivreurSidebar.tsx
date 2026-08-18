@@ -1,9 +1,11 @@
 'use client';
+
 import Image from "next/image";
 import React, { useState } from 'react';
 import {
     Package,
     History,
+    Settings, // <--- Import de l'icône Settings
     LogOut,
     Menu,
 } from 'lucide-react';
@@ -27,8 +29,8 @@ import {
 import { LivreurProfile } from '@/types/mission';
 
 interface LivreurSidebarProps {
-    activeTab: 'commandes' | 'history';
-    onTabChange: (tab: 'commandes' | 'history') => void;
+    activeTab: 'commandes' | 'history' | 'settings'; // <--- Ajout de 'settings'
+    onTabChange: (tab: 'commandes' | 'history' | 'settings') => void;
     missionsCount: number;
     historyCount: number;
     profile: LivreurProfile;
@@ -122,7 +124,7 @@ export function LivreurSidebar({
                         </div>
                     )}
 
-                    {/* PROFIL & STATS (COURSES & NOTE) */}
+                    {/* PROFIL & STATS */}
                     <Card
                         className={`transition-all duration-300 ${
                             collapsed
@@ -140,8 +142,8 @@ export function LivreurSidebar({
 
                                 {!collapsed && (
                                     <div className="whitespace-nowrap overflow-hidden">
-                                        <h2 className="text-xs text-emrold-950 truncate">
-                                            {profile.name }
+                                        <h2 className="text-xs text-white truncate">
+                                            {profile.name}
                                         </h2>
                                         <div className="flex items-center gap-1.5 mt-0.5">
                                             <span className="w-2 h-2 rounded-full bg-amber-400 inline-block shrink-0" />
@@ -156,17 +158,14 @@ export function LivreurSidebar({
 
                         {!collapsed && (
                             <div className="grid grid-cols-2 gap-2 pt-1 border-t border-emerald-800/40">
-                                {/* Courses à faire (provenant du service parent) */}
                                 <div className="bg-emerald-950/40 rounded-xl p-2 text-center">
                                     <span className="block text-sm font-bold text-white">
-                                        {profile.assignedCoursesCount } 
+                                        {profile.assignedCoursesCount}
                                     </span>
                                     <span className="text-[10px] text-emerald-200/60 uppercase tracking-wider">
                                         A FAIRE
                                     </span>
                                 </div>
-                                
-                                {/* Note du livreur (provenant du service parent) */}
                                 <div className="bg-emerald-950/40 rounded-xl p-2 text-center">
                                     <span className="block text-sm font-bold text-white">
                                         {profile.completedCoursesCount}
@@ -188,10 +187,8 @@ export function LivreurSidebar({
                         )}
 
                         <nav className="flex flex-col gap-2 w-full">
-                            <NavItemWithTooltip
-                                label={`Mes missions (${missionsCount})`}
-                                collapsed={collapsed}
-                            >
+                            {/* Mes missions */}
+                            <NavItemWithTooltip label={`Mes missions (${missionsCount})`} collapsed={collapsed}>
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -200,9 +197,7 @@ export function LivreurSidebar({
                                         if (isMobile) setIsMobileOpen(false);
                                     }}
                                     className={`h-10 rounded-xl text-xs transition-all ${
-                                        collapsed 
-                                            ? 'w-10 p-0 flex items-center justify-center' 
-                                            : 'w-full px-3.5 flex items-center justify-between'
+                                        collapsed ? 'w-10 p-0 flex items-center justify-center' : 'w-full px-3.5 flex items-center justify-between'
                                     } ${
                                         activeTab === 'commandes'
                                             ? 'bg-[#d4a017] hover:bg-[#d4a017] text-emerald-950 font-bold'
@@ -214,23 +209,17 @@ export function LivreurSidebar({
                                         {!collapsed && <span>Mes missions</span>}
                                     </div>
                                     {!collapsed && (
-                                        <Badge
-                                            className={`text-[10px] px-1.5 py-0.5 rounded-md border-0 shadow-none ${
-                                                activeTab === 'commandes'
-                                                    ? 'bg-emerald-950/20 text-emerald-950 font-bold'
-                                                    : 'bg-emerald-900 text-emerald-200'
-                                            }`}
-                                        >
+                                        <Badge className={`text-[10px] px-1.5 py-0.5 rounded-md border-0 shadow-none ${
+                                            activeTab === 'commandes' ? 'bg-emerald-950/20 text-emerald-950 font-bold' : 'bg-emerald-900 text-emerald-200'
+                                        }`}>
                                             {missionsCount}
                                         </Badge>
                                     )}
                                 </Button>
                             </NavItemWithTooltip>
 
-                            <NavItemWithTooltip
-                                label={`Historique (${historyCount})`}
-                                collapsed={collapsed}
-                            >
+                            {/* Historique */}
+                            <NavItemWithTooltip label={`Historique (${historyCount})`} collapsed={collapsed}>
                                 <Button
                                     type="button"
                                     variant="ghost"
@@ -239,9 +228,7 @@ export function LivreurSidebar({
                                         if (isMobile) setIsMobileOpen(false);
                                     }}
                                     className={`h-10 rounded-xl text-xs transition-all ${
-                                        collapsed 
-                                            ? 'w-10 p-0 flex items-center justify-center' 
-                                            : 'w-full px-3.5 flex items-center justify-between'
+                                        collapsed ? 'w-10 p-0 flex items-center justify-center' : 'w-full px-3.5 flex items-center justify-between'
                                     } ${
                                         activeTab === 'history'
                                             ? 'bg-[#d4a017] hover:bg-[#d4a017] text-emerald-950 font-bold'
@@ -253,16 +240,36 @@ export function LivreurSidebar({
                                         {!collapsed && <span>Historique</span>}
                                     </div>
                                     {!collapsed && (
-                                        <Badge
-                                            className={`text-[10px] px-1.5 py-0.5 rounded-md border-0 shadow-none ${
-                                                activeTab === 'history'
-                                                    ? 'bg-emerald-950/20 text-emerald-950 font-bold'
-                                                    : 'bg-emerald-900 text-emerald-200'
-                                            }`}
-                                        >
+                                        <Badge className={`text-[10px] px-1.5 py-0.5 rounded-md border-0 shadow-none ${
+                                            activeTab === 'history' ? 'bg-emerald-950/20 text-emerald-950 font-bold' : 'bg-emerald-900 text-emerald-200'
+                                        }`}>
                                             {historyCount}
                                         </Badge>
                                     )}
+                                </Button>
+                            </NavItemWithTooltip>
+
+                            {/* Paramètres (NOUVEAU) */}
+                            <NavItemWithTooltip label="Paramètres" collapsed={collapsed}>
+                                <Button
+                                    type="button"
+                                    variant="ghost"
+                                    onClick={() => {
+                                        onTabChange('settings');
+                                        if (isMobile) setIsMobileOpen(false);
+                                    }}
+                                    className={`h-10 rounded-xl text-xs transition-all ${
+                                        collapsed ? 'w-10 p-0 flex items-center justify-center' : 'w-full px-3.5 flex items-center justify-start'
+                                    } ${
+                                        activeTab === 'settings'
+                                            ? 'bg-[#d4a017] hover:bg-[#d4a017] text-emerald-950 font-bold'
+                                            : 'text-emerald-100/70 hover:bg-emerald-900/30 hover:text-white'
+                                    }`}
+                                >
+                                    <div className="flex items-center gap-2.5">
+                                        <Settings size={18} className="shrink-0" />
+                                        {!collapsed && <span>Paramètres</span>}
+                                    </div>
                                 </Button>
                             </NavItemWithTooltip>
                         </nav>
@@ -276,9 +283,7 @@ export function LivreurSidebar({
                             type="button"
                             variant="ghost"
                             className={`text-xs font-medium text-emerald-200/70 hover:text-white hover:bg-emerald-900/30 ${
-                                collapsed 
-                                    ? 'h-10 w-10 p-0 flex items-center justify-center rounded-xl' 
-                                    : 'w-full justify-start px-2 py-1.5 h-auto'
+                                collapsed ? 'h-10 w-10 p-0 flex items-center justify-center rounded-xl' : 'w-full justify-start px-2 py-1.5 h-auto'
                             }`}
                         >
                             <LogOut size={18} className="shrink-0" />
@@ -311,7 +316,6 @@ export function LivreurSidebar({
                         <SheetTrigger className="bg-emerald-900/60 text-emerald-100 hover:text-white h-9 w-9 rounded-xl flex items-center justify-center transition-colors">
                             <Menu size={20} />
                         </SheetTrigger>
-
                         <SheetContent side="left" className="p-0 bg-[#0b3b29] border-r-emerald-900 w-72 text-white border-0">
                             <SheetHeader className="sr-only">
                                 <SheetTitle>Menu Livreur</SheetTitle>

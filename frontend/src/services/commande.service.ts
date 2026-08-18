@@ -52,9 +52,9 @@ export async function updateCommande(idCommande: string, payload: Partial<Create
   return res.data;
 }
 
-export async function updateStatutCommande(idCommande: string, statut:StatutCommande ): Promise<CommandeResponse> {
-  const res = await axiosInstance.patch(`${API.commandes.base}/statut`, null, {
-    params: { id_commande: idCommande, statut }
+export async function updateStatutCommande(idCommande: string, statut: StatutCommande): Promise<CommandeResponse> {
+  const res = await axiosInstance.patch(API.commandes.statut(idCommande), {
+    nouveau_statut: statut 
   });
   return res.data;
 }

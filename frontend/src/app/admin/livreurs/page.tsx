@@ -1,8 +1,9 @@
 "use client";
 
-import { useEffect, useState } from "react";
-import { getAll, updateEtatLivreur, archiverLivreur, restaurerLivreur } from "@/services/livreur.service";
+import { useState, useMemo } from "react";
+import { updateEtatLivreur, archiverLivreur, restaurerLivreur } from "@/services/livreur.service";
 import { Livreur } from "@/types/livreur.types";
+import { useAdmin } from "@/contexts/AdminContext"; 
 import { LivreurStatsOverview } from "@/components/admin/livreurs/LivreurStatsOverview";
 import { LivreurFiltersBar } from "@/components/admin/livreurs/LivreurFiltersBar";
 import { LivreurTable } from "@/components/admin/livreurs/LivreurTable";
@@ -13,8 +14,13 @@ import { UserPlus, RefreshCw } from "lucide-react";
 import { toast } from "sonner";
 
 export default function AdminLivreursPage() {
-  const [livreurs, setLivreurs] = useState<Livreur[]>([]);
-  const [loading, setLoading] = useState(true);
+  // Récupération des données unifiées du contexte admin
+  const { livreursActifs, livreursArchives, loading, chargerDonnees } = useAdmin();
+
+  // Fusionner les actifs et les archives pour garder une vue d'ensemble globale dans la page de supervision
+  const livreurs = useMemo(() => {
+    return [...livreursActifs, ...livreursArchives];
+  }, [livreursActifs, livreursArchives]);
 
   // États pour les modales de détails et d'édition
   const [selectedLivreur, setSelectedLivreur] = useState<Livreur | null>(null);
@@ -31,22 +37,6 @@ export default function AdminLivreursPage() {
   const [statusFilter, setStatusFilter] = useState("TOUT");
   const [vehicleFilter, setVehicleFilter] = useState("TOUT");
 
-  const fetchLivreurs = async () => {
-    try {
-      setLoading(true);
-      const data = await getAll();
-      setLivreurs(data);
-    } catch (error) {
-      toast.error("Erreur lors du chargement des livreurs");
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchLivreurs();
-  }, []);
-
   const handleRowClick = (livreur: Livreur) => {
     setSelectedLivreur(livreur);
     setIsDetailsOpen(true);
@@ -57,7 +47,7 @@ export default function AdminLivreursPage() {
     try {
       await updateEtatLivreur(id, nextStatus as any);
       toast.success(`État mis à jour : ${nextStatus}`);
-      fetchLivreurs();
+      await chargerDonnees(false);
       
       if (selectedLivreur && selectedLivreur.id === id) {
         setSelectedLivreur({ ...selectedLivreur, etat_activite: nextStatus as any });
@@ -72,7 +62,7 @@ export default function AdminLivreursPage() {
       await archiverLivreur(id);
       toast.success("Livreur archivé avec succès");
       setIsDetailsOpen(false);
-      fetchLivreurs();
+      await chargerDonnees(false);
     } catch (error) {
       toast.error("Échec de l'archivage");
     }
@@ -83,7 +73,7 @@ export default function AdminLivreursPage() {
       await restaurerLivreur(id);
       toast.success("Livreur désarchivé avec succès");
       setIsDetailsOpen(false);
-      fetchLivreurs();
+      await chargerDonnees(false);
     } catch (error) {
       toast.error("Échec du désarchivage");
     }
@@ -116,7 +106,7 @@ export default function AdminLivreursPage() {
         <div className="flex items-center gap-3 self-end lg:self-auto">
           <Button
             variant="outline"
-            onClick={fetchLivreurs}
+            onClick={() => chargerDonnees(false)}
             className="rounded-xl border-slate-200 gap-2 hover:bg-slate-50"
           >
             <RefreshCw className={`w-4 h-4 ${loading ? 'animate-spin' : ''}`} />
@@ -169,7 +159,7 @@ export default function AdminLivreursPage() {
         livreur={editingLivreur}
         isOpen={isEditOpen}
         onClose={() => setIsEditOpen(false)}
-        onSuccess={fetchLivreurs}
+        onSuccess={() => chargerDonnees(false)}
         isCreation={false}
       />
 
@@ -177,7 +167,7 @@ export default function AdminLivreursPage() {
       <LivreurFormModal
         isOpen={isCreateOpen}
         onClose={() => setIsCreateOpen(false)}
-        onSuccess={fetchLivreurs}
+        onSuccess={() => chargerDonnees(false)}
         isCreation={true}
       />
     </div>

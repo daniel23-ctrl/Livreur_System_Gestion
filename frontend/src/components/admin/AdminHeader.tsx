@@ -5,7 +5,7 @@ import { usePathname } from "next/navigation";
 import { Bell, Menu, Sun } from "lucide-react";
 import { Livreur } from "@/types/livreur.types";
 import { CreateCommandeDialog } from "@/components/admin/commandes/CreateCommandeDialog";
-import { getDisponibles } from "@/services/livreur.service"; 
+import { getConnectes } from "@/services/livreur.service"; 
 import { getCurrentUser } from "@/services/auth.service";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -74,7 +74,7 @@ export default function AdminHeader({
   // Charger les livreurs disponibles pour l'assignation
   const fetchLivreurs = useCallback(async () => {
     try {
-      const res = await getDisponibles();
+      const res = await getConnectes();
       setLivreursEnLigne(res);
     } catch (err) {
       console.error("Erreur lors de la récupération des livreurs :", err);

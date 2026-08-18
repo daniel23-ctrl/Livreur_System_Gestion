@@ -18,4 +18,14 @@ export interface LivreurProfile {
   status: string;
   assignedCoursesCount: number; 
   completedCoursesCount: number; 
+  // Champs ajoutés pour le formulaire de paramètres :
+  id?: string;
+  id_livreur?: string;
+  nom?: string;
+  prenom?: string;
+  telephone?: string;
+  email?: string;
+  role?: string;
+  type_vehicule?: string;
+  immatriculation?: string;
 }

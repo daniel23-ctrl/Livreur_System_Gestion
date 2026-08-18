@@ -22,11 +22,10 @@ LOAD_RELATIONS = [
 
 # Transitions autorisées et irréversibles
 TRANSITIONS_AUTORISEES = {
-    StatutCommandeEnum.ASSIGNEE: StatutCommandeEnum.EN_COURS_DE_COLLECTE,
-    StatutCommandeEnum.EN_COURS_DE_COLLECTE: StatutCommandeEnum.EN_COURS_DE_LIVRAISON,
+    StatutCommandeEnum.ASSIGNEE: [StatutCommandeEnum.EN_COURS_DE_COLLECTE, StatutCommandeEnum.ANNULEE],
+    StatutCommandeEnum.EN_COURS_DE_COLLECTE: [StatutCommandeEnum.EN_COURS_DE_LIVRAISON, StatutCommandeEnum.ANNULEE],
     StatutCommandeEnum.EN_COURS_DE_LIVRAISON: StatutCommandeEnum.LIVREE,
 }
-
 
 def generate_reference() -> str:
     """Génère une référence unique pour une commande"""
@@ -47,6 +46,12 @@ async def creer_commande(
     ):
         raise ValueError(
             "Les adresses de départ et d'arrivée ne peuvent pas être identiques"
+        )
+    if (
+        data.telephone_demandeur.strip().lower() == data.telephone_destinataire.strip().lower()
+    ):
+        raise ValueError(
+            "Les telephones du demandeur et du destinataire peuvent pas etre identiques"
         )
 
     while True:
@@ -184,22 +189,33 @@ async def mettre_a_jour_statut_commande(
     if not commande:
         return None
 
-    transition_attendue = TRANSITIONS_AUTORISEES.get(commande.statut_commande)
-    if nouveau_statut != transition_attendue:
-        raise ValueError(
-            f"Transition invalide : {commande.statut_commande} → {nouveau_statut}. "
-            f"Transition attendue : {commande.statut_commande} → {transition_attendue}"
-        )
+    # 1. Validation des transitions ou de l'annulation
+    if nouveau_statut == StatutCommandeEnum.ANNULEE:
+        if commande.statut_commande == StatutCommandeEnum.LIVREE:
+            raise ValueError("Impossible d'annuler une commande déjà livrée.")
+    else:
+        transition_attendue = TRANSITIONS_AUTORISEES.get(commande.statut_commande)
+        if nouveau_statut != transition_attendue:
+            raise ValueError(
+                f"Transition invalide : {commande.statut_commande} → {nouveau_statut}. "
+                f"Transition attendue : {commande.statut_commande} → {transition_attendue}"
+            )
 
+    # 2. Application du nouveau statut
     commande.statut_commande = nouveau_statut
 
-    if nouveau_statut == StatutCommandeEnum.LIVREE and commande.id_livreur:
+    # 3. Libération du livreur et dissociation si LIVREE ou ANNULEE
+    if (nouveau_statut == StatutCommandeEnum.LIVREE or nouveau_statut == StatutCommandeEnum.ANNULEE) and commande.id_livreur:
         livreur_res = await db.execute(
             select(Livreur).where(Livreur.id_livreur == commande.id_livreur)
         )
         livreur = livreur_res.scalar_one_or_none()
         if livreur:
             livreur.etat_activite = EtatActiviteEnum.DISPONIBLE
+        
+        # On dissocie proprement le livreur de la commande
+        commande.id_livreur = None
+        commande.livreur = None
 
     await db.commit()
     return await trouver_commande(db, id_commande)
@@ -229,9 +245,9 @@ async def affecter_commande_a_livreur(
     livreur = livreur_res.scalar_one_or_none()
     if not livreur:
         raise ValueError("Livreur non trouvé")
-    if livreur.etat_activite != EtatActiviteEnum.DISPONIBLE:
+    if livreur.etat_activite not in [EtatActiviteEnum.DISPONIBLE, EtatActiviteEnum.EN_COURSE]:
         raise ValueError(
-            "Ce livreur n'est plus disponible. Veuillez en sélectionner un autre."
+            "Ce livreur n'est pas en mesure d'effectuer une course."
         )
 
     nom_livreur = (

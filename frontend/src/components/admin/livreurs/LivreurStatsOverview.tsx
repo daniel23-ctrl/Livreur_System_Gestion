@@ -2,6 +2,7 @@
 
 import { Users, UserCheck, Bike, ShieldAlert } from "lucide-react";
 import { Livreur } from "@/types/livreur.types";
+import KpiCard from "@/components/admin/KpiCard";
 
 interface LivreurStatsProps {
   livreurs: Livreur[];
@@ -13,51 +14,53 @@ export function LivreurStatsOverview({ livreurs }: LivreurStatsProps) {
   const disponibles = livreurs.filter((l) => l.etat_activite === "DISPONIBLE" && l.est_actif).length;
   const enMission = livreurs.filter((l) => l.etat_activite === "EN_COURSE" && l.est_actif).length;
 
+  const kpiItems = [
+    {
+      id: "total",
+      label: "TOTAL LIVREURS",
+      value: total,
+      subtitle: "Enregistrés",
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <Users className="w-5 h-5 text-white" />,
+    },
+    {
+      id: "actifs",
+      label: "COMPTES ACTIFS",
+      value: actifs,
+      subtitle: "Opérationnels",
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <UserCheck className="w-5 h-5 text-[#60A5FA]" />,
+    },
+    {
+      id: "disponibles",
+      label: "DISPONIBLES",
+      value: disponibles,
+      subtitle: "Prêts pour course",
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <Bike className="w-5 h-5 text-[#4ADE80]" />,
+    },
+    {
+      id: "enMission",
+      label: "EN MISSION",
+      value: enMission,
+      subtitle: "En cours de route",
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <ShieldAlert className="w-5 h-5 text-[#FACC15]" />,
+    },
+  ];
+
   return (
-    <div className="grid grid-cols-1 sm:grid-cols-2 lg:grid-cols-4 gap-4 mb-6">
-      {/* Total */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-all hover:shadow-md">
-        <div>
-          <p className="text-sm font-medium text-slate-500">Total Livreurs</p>
-          <h3 className="text-2xl font-bold text-slate-800 mt-1">{total}</h3>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-          <Users className="w-6 h-6" />
-        </div>
-      </div>
-
-      {/* Actifs */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-all hover:shadow-md">
-        <div>
-          <p className="text-sm font-medium text-slate-500">Comptes Actifs</p>
-          <h3 className="text-2xl font-bold text-slate-800 mt-1">{actifs}</h3>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-blue-50 flex items-center justify-center text-blue-600">
-          <UserCheck className="w-6 h-6" />
-        </div>
-      </div>
-
-      {/* Disponibles */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-all hover:shadow-md">
-        <div>
-          <p className="text-sm font-medium text-slate-500">Disponibles</p>
-          <h3 className="text-2xl font-bold text-emerald-600 mt-1">{disponibles}</h3>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-emerald-50 flex items-center justify-center text-emerald-600">
-          <Bike className="w-6 h-6" />
-        </div>
-      </div>
-
-      {/* En Mission */}
-      <div className="bg-white p-5 rounded-2xl shadow-sm border border-slate-100 flex items-center justify-between transition-all hover:shadow-md">
-        <div>
-          <p className="text-sm font-medium text-slate-500">En Mission</p>
-          <h3 className="text-2xl font-bold text-amber-600 mt-1">{enMission}</h3>
-        </div>
-        <div className="w-12 h-12 rounded-xl bg-amber-50 flex items-center justify-center text-amber-600">
-          <ShieldAlert className="w-6 h-6" />
-        </div>
-      </div>
+    <div className="bg-[#0B3B29]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col lg:flex-row items-center justify-between divide-y lg:divide-y-0 lg:divide-x divide-white/15 w-full mb-6">
+      {kpiItems.map((kpi) => (
+        <KpiCard
+          key={kpi.id}
+          label={kpi.label}
+          value={kpi.value}
+          subtitle={kpi.subtitle}
+          iconBg={kpi.iconBg}
+          icon={kpi.icon}
+        />
+      ))}
     </div>
   );
 }

@@ -2,7 +2,6 @@
 
 import React, { useEffect, useState } from "react";
 import { Bell, Menu, Sun } from "lucide-react";
-import { getCurrentUser } from "@/services/auth.service";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
 import {
@@ -16,21 +15,20 @@ interface DashboardHeaderProps {
   title: string;
   onToggleMobileMenu?: () => void;
   location?: string;
+  user?: any; // <-- Ajout de l'utilisateur en prop depuis le parent
 }
 
 export function DashboardHeader({
   title,
   onToggleMobileMenu,
   location = "Lomé, Togo",
+  user,
 }: DashboardHeaderProps) {
   const [currentDate, setCurrentDate] = useState<string>("");
-  const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
 
   useEffect(() => {
     setMounted(true);
-    setUser(getCurrentUser());
-
     const today = new Date();
     const formatted = today.toLocaleDateString("fr-FR", {
       weekday: "long",
@@ -41,18 +39,22 @@ export function DashboardHeader({
     setCurrentDate(formatted.charAt(0).toUpperCase() + formatted.slice(1));
   }, []);
 
-  const initiales = mounted && user
-    ? `${user.prenom?.[0] ?? ""}${user.nom?.[0] ?? ""}`.toUpperCase()
-    : "AK";
+  // Utilisation sécurisée des données reçues du parent
+  const userPrenom = user?.prenom || user?.first_name || "";
+  const userNom = user?.nom || user?.last_name || "";
 
-  const userName = mounted && user
-    ? `${user?.prenom ?? ""} ${user?.nom ?? ""}`.trim()
+  const initiales = mounted && (userPrenom || userNom)
+    ? `${userPrenom[0] ?? ""}${userNom[0] ?? ""}`.toUpperCase()
+    : "PT";
+
+  const userName = mounted && (userPrenom || userNom)
+    ? `${userPrenom} ${userNom}`.trim()
     : "Utilisateur";
 
   return (
     <TooltipProvider delay={100}>
       <header className="w-full bg-white border-b border-gray-100 px-4 sm:px-6 lg:px-8 py-2 lg:py-2 flex items-center justify-between transition-all">
-        {/* Côté gauche : Menu Mobile + Titre + Sous-titre / Statut */}
+        {/* Côté gauche : Menu Mobile + Titre + Date/Lieu */}
         <div className="flex items-center gap-3">
           {onToggleMobileMenu && (
             <button
@@ -72,7 +74,6 @@ export function DashboardHeader({
             <div className="flex items-center gap-2">
               <span className="w-2 h-2 rounded-full bg-amber-500 inline-block shrink-0" />
               <p className="text-xs text-amber-700/80 font-medium">
-                {/* {statusText} */}
                 {currentDate && `  ${currentDate}, ${location}`}
               </p>
             </div>

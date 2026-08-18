@@ -29,7 +29,7 @@ import {
     Check,
 } from "lucide-react";
 import { CommandeDetails, StatutCommande } from "@/types/commande.types";
-import { getDisponibles } from "@/services/livreur.service";
+import { getConnectes } from "@/services/livreur.service";
 import { affecterLivreur } from "@/services/commande.service";
 import { toast } from "sonner";
 import { Livreur } from "@/types/livreur.types";
@@ -113,7 +113,7 @@ export function CommandeDetailsDialog({
             setSelectedLivreurId("");
             setAssignError(null);
             setSuccessMessage(false);
-            getDisponibles()
+            getConnectes()
                 .then((data) => setLivreurs(data))
                 .catch(() => setLivreurs([]));
         }

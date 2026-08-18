@@ -48,3 +48,6 @@ class LivreurProfilUpdate(BaseModel):
     type_vehicule: VehiculeEnum | None = None
     immatriculation: str | None = None
 
+class ChangerMotDePasseSchema(BaseModel):
+    ancien_mot_de_passe: str
+    nouveau_mot_de_passe: str

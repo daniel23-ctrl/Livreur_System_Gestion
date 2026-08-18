@@ -1,40 +1,21 @@
 "use client";
 
-import React, { useState, useEffect, useCallback } from "react";
+import React, { useState } from "react";
 import { Archive, Search, RotateCcw, UserX, UserCheck, Phone, Mail, Car } from "lucide-react";
 import { Input } from "@/components/ui/input";
 import { Button } from "@/components/ui/button";
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table";
-import { getInactifs, restaurerLivreur, getActifs, archiverLivreur } from "@/services/livreur.service";
+import { restaurerLivreur, archiverLivreur } from "@/services/livreur.service";
 import { Livreur } from "@/types/livreur.types";
+import { useAdmin } from "@/contexts/AdminContext"; // Import du contexte global
 import { toast } from "sonner";
 
 export default function LivreursArchives() {
+  // Récupération des données unifiées du contexte admin
+  const { livreursActifs, livreursArchives, loading, chargerDonnees } = useAdmin();
+
   const [activeTab, setActiveTab] = useState<"actifs" | "archives">("actifs");
-  const [livreursActifs, setLivreursActifs] = useState<Livreur[]>([]);
-  const [livreursArchives, setLivreursArchives] = useState<Livreur[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
   const [searchTerm, setSearchTerm] = useState<string>("");
-
-  const fetchData = useCallback(async () => {
-    setLoading(true);
-    try {
-      const [actifsRes, inactifsRes] = await Promise.all([
-        getActifs(),
-        getInactifs()
-      ]);
-      setLivreursActifs(actifsRes);
-      setLivreursArchives(inactifsRes);
-    } catch (error) {
-      toast.error("Erreur lors du chargement des données");
-    } finally {
-      setLoading(false);
-    }
-  }, []);
-
-  useEffect(() => {
-    fetchData();
-  }, [fetchData]);
 
   const handleArchiver = (livreur: Livreur) => {
     toast(`Voulez-vous réellement archiver ${livreur.prenom} ${livreur.nom} ?`, {
@@ -43,8 +24,8 @@ export default function LivreursArchives() {
         onClick: async () => {
           try {
             await archiverLivreur(livreur.id);
-            setLivreursActifs((prev) => prev.filter((l) => l.id !== livreur.id));
-            setLivreursArchives((prev) => [...prev, livreur]);
+            // Synchronisation globale via le contexte
+            await chargerDonnees(false);
             toast.success("Livreur archivé avec succès !");
           } catch (error) {
             toast.error("Échec de l'archivage.");
@@ -62,8 +43,8 @@ export default function LivreursArchives() {
         onClick: async () => {
           try {
             await restaurerLivreur(livreur.id);
-            setLivreursArchives((prev) => prev.filter((l) => l.id !== livreur.id));
-            setLivreursActifs((prev) => [...prev, livreur]);
+            // Synchronisation globale via le contexte
+            await chargerDonnees(false);
             toast.success("Livreur désarchivé avec succès !");
           } catch (error) {
             toast.error("Échec du désarchivage.");
@@ -84,7 +65,7 @@ export default function LivreursArchives() {
   return (
     <div className="p-6 space-y-6 max-w-7xl mx-auto">
       {/* En-tête principal */}
-      <div className="bg-[#0B3B29] text-white px-6 py-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
+      <div className="bg-[#0B3B29]/80 text-white px-6 py-5 rounded-2xl flex flex-col sm:flex-row items-start sm:items-center justify-between gap-4 shadow-lg">
         <div className="flex items-center gap-3">
           <h2 className="text-lg sm:text-xl font-bold tracking-wide uppercase flex items-center gap-2">
             Gestion des Archives & Actifs
@@ -99,7 +80,7 @@ export default function LivreursArchives() {
             className={
               activeTab === "actifs"
                 ? "bg-[#DCA524] text-white hover:bg-[#c4921f] font-semibold shadow-sm"
-                : "bg-transparent text-white border-white/30 hover:bg-white/10"
+                : "bg-transparent text-white border-white/30 hover:bg-white/10 cursor-pointer"
             }
           >
             <UserCheck className="w-4 h-4 mr-1.5" />
@@ -112,7 +93,7 @@ export default function LivreursArchives() {
             className={
               activeTab === "archives"
                 ? "bg-[#DCA524] text-white hover:bg-[#c4921f] font-semibold shadow-sm"
-                : "bg-transparent text-white border-white/30 hover:bg-white/10"
+                : "bg-transparent text-white border-white/30 hover:bg-white/10 cursor-pointer"
             }
           >
             <Archive className="w-4 h-4 mr-1.5" />
@@ -121,10 +102,10 @@ export default function LivreursArchives() {
           <Button
             variant="outline"
             size="icon"
-            onClick={fetchData}
-            className="bg-transparent text-white border-white/30 hover:bg-white/10 ml-2"
+            onClick={() => chargerDonnees(true)}
+            className="bg-transparent text-white border-white/30 hover:bg-white/10 ml-2 cursor-pointer"
           >
-            <RotateCcw className="w-4 h-4 text-[#DCA524]" />
+            <RotateCcw className={`w-4 h-4 text-[#DCA524] ${loading ? 'animate-spin' : ''}`} />
           </Button>
         </div>
       </div>
@@ -178,7 +159,6 @@ export default function LivreursArchives() {
                 <TableRow key={livreur.id} className="hover:bg-slate-50/60 transition-colors border-b border-slate-50">
                   <TableCell className="font-semibold text-slate-900 py-4">
                     <div className="flex items-center gap-2.5">
-                      {/* Pastille verte et initiales en blanc */}
                       <div className="w-8 h-8 rounded-full bg-[#0B3B29] text-white font-bold flex items-center justify-center text-xs shadow-xs">
                         {livreur.prenom?.[0]}{livreur.nom?.[0]}
                       </div>

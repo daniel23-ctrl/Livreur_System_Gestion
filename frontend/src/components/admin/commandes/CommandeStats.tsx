@@ -22,37 +22,37 @@ export default function CommandesStats({ vuePeriode, stats }: CommandesStatsProp
       label: vuePeriode === "JOUR" ? "Commandes (Jour)" : "Total Global",
       value: stats.total,
       subtitle: `${stats.enAttente} en attente`,
-      iconBg: "#F0FDF4",
-      icon: <Package className="w-6 h-6 text-[#0b3b29]" />,
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <Package className="w-5 h-5 text-white" />,
     },
     {
       id: "enCours",
       label: "En Cours / Assignées",
       value: stats.enCours,
       subtitle: "Prises en charge",
-      iconBg: "#FEF3C7",
-      icon: <Truck className="w-6 h-6 text-[#DCA524]" />,
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <Truck className="w-5 h-5 text-[#FACC15]" />,
     },
     {
       id: "livrees",
       label: "Livrées",
       value: stats.livrees,
       subtitle: `${taux}% de réussite`,
-      iconBg: "#DCFCE7",
-      icon: <CheckCircle2 className="w-6 h-6 text-green-600" />,
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <CheckCircle2 className="w-5 h-5 text-[#4ADE80]" />,
     },
     {
       id: "annulees",
       label: "Annulées",
       value: stats.annulees,
       subtitle: "Échecs / Annulées",
-      iconBg: "#FEE2E2",
-      icon: <XCircle className="w-6 h-6 text-red-500" />,
+      iconBg: "rgba(255, 255, 255, 0.15)",
+      icon: <XCircle className="w-5 h-5 text-red-400" />,
     },
   ];
 
   return (
-    <div className="grid grid-cols-2 lg:grid-cols-4 gap-2.5 sm:gap-4">
+    <div className="bg-[#0B3B29]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col lg:flex-row items-center justify-between divide-y lg:divide-y-0 lg:divide-x divide-white/15 w-full">
       {kpiItems.map((kpi) => (
         <KpiCard
           key={kpi.id}

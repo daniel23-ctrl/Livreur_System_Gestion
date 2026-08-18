@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Button } from "@/components/ui/button";
@@ -8,85 +8,58 @@ import { Input } from "@/components/ui/input";
 import { MapPin, Package, Clock, Search, Loader2, RefreshCw } from "lucide-react";
 import { CommandeResponse } from "@/types/commande.types";
 import { Livreur } from "@/types/livreur.types";
-import { getAll as getAllCommandes, affecterLivreur } from "@/services/commande.service";
-import { getDisponibles } from "@/services/livreur.service";
 import { AffectationModal } from "./AffectationModal";
-import { toast } from "sonner"; // Assurez-vous d'importer votre bibliothèque de toast (ex: Sonner ou React-Hot-Toast)
 
 interface Props {
+  commandes: CommandeResponse[];
+  livreursDispo: Livreur[];
+  loading: boolean;
+  onRefresh: () => void;
+  onAffecterLivreur: (idCommande: string, idLivreur: string) => Promise<void>;
   onAffectationSuccess?: () => void;
 }
 
-export function CommandesNonAffectees({ onAffectationSuccess }: Props) {
-  const [commandes, setCommandes] = useState<CommandeResponse[]>([]);
-  const [livreursDispo, setLivreursDispo] = useState<Livreur[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+export function CommandesNonAffectees({
+  commandes,
+  livreursDispo,
+  loading,
+  onRefresh,
+  onAffecterLivreur,
+  onAffectationSuccess,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState("");
-  
   const [isModalOpen, setIsModalOpen] = useState(false);
   const [selectedCommande, setSelectedCommande] = useState<CommandeResponse | null>(null);
   const [affectingId, setAffectingId] = useState<string | null>(null);
 
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [dataCommandes, dataLivreursDispo] = await Promise.all([
-        getAllCommandes(),
-        getDisponibles()
-      ]);
-      
-      const nonAffectees = dataCommandes.filter((cmd) => !cmd.id_livreur && !cmd.livreur);
-      setCommandes(nonAffectees);
-      setLivreursDispo(dataLivreursDispo);
-    } catch (error) {
-      console.error("Erreur lors du chargement des données :", error);
-    } finally {
-      setLoading(false);
-    }
-  };
+  // Filtrer uniquement les commandes réellement non affectées si le parent envoie un tableau global,
+  // ou utiliser directement le tableau si le parent filtre déjà. Ici on garde le filtre de sécurité :
+  const nonAffectees = commandes.filter((cmd) => !cmd.id_livreur && !cmd.livreur);
 
-  useEffect(() => {
-    fetchData();
-  }, []);
+  const filteredCommandes = nonAffectees.filter(
+    (cmd) =>
+      (cmd.client?.nom?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
+      cmd.adresse_livraison.toLowerCase().includes(searchTerm.toLowerCase()) ||
+      cmd.reference.toLowerCase().includes(searchTerm.toLowerCase())
+  );
 
   const handleOpenModal = (cmd: CommandeResponse) => {
     setSelectedCommande(cmd);
     setIsModalOpen(true);
   };
 
-  const handleAffecterLivreur = async (idCommande: string, idLivreur: string) => {
+  const handleConfirmAffectation = async (idCommande: string, idLivreur: string) => {
     try {
       setAffectingId(idCommande);
-      await affecterLivreur(idCommande, { id_livreur: idLivreur });
-      
-      toast.success("Livreur affecté avec succès !");
-      
-      await fetchData(); 
-      setIsModalOpen(false); // Ferme la modale proprement
+      await onAffecterLivreur(idCommande, idLivreur);
+      setIsModalOpen(false);
       if (onAffectationSuccess) onAffectationSuccess();
-    } catch (error: any) {
+    } catch (error) {
       console.error("Erreur lors de l'affectation :", error);
-      
-      // Gestion de secours en cas de timeout réseau où la requête a quand même abouti
-      if (error.code === "ECONNABORTED" || error.message?.includes("timeout")) {
-        toast.success("Livreur affecté avec succès !");
-        await fetchData();
-        setIsModalOpen(false);
-        if (onAffectationSuccess) onAffectationSuccess();
-      } else {
-        toast.error("Erreur lors de l'affectation du livreur.");
-      }
     } finally {
       setAffectingId(null);
     }
   };
-
-  const filteredCommandes = commandes.filter(
-    (cmd) =>
-      (cmd.client?.nom?.toLowerCase() || "").includes(searchTerm.toLowerCase()) ||
-      cmd.adresse_livraison.toLowerCase().includes(searchTerm.toLowerCase()) ||
-      cmd.reference.toLowerCase().includes(searchTerm.toLowerCase())
-  );
 
   return (
     <>
@@ -96,13 +69,13 @@ export function CommandesNonAffectees({ onAffectationSuccess }: Props) {
             <CardTitle className="text-white text-xs font-bold flex items-center gap-2">
               <span>COMMANDES A ASSIGNER</span>
               <Badge className="bg-[#DCA524] text-white border-0 text-[10px] px-1.5 py-0 font-bold">
-                {filteredCommandes.length} / {commandes.length}
+                {filteredCommandes.length} / {nonAffectees.length}
               </Badge>
             </CardTitle>
 
             <div
               role="button"
-              onClick={!loading ? fetchData : undefined}
+              onClick={!loading ? onRefresh : undefined}
               className={`h-7 px-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-[11px] font-medium rounded-md flex items-center gap-1 cursor-pointer transition-colors ${
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
@@ -124,7 +97,7 @@ export function CommandesNonAffectees({ onAffectationSuccess }: Props) {
         </CardHeader>
 
         <CardContent className="p-2.5 max-h-[220px] overflow-y-auto space-y-2 custom-scrollbar bg-white">
-          {loading ? (
+          {loading && nonAffectees.length === 0 ? (
             <div className="flex justify-center items-center py-6">
               <Loader2 className="w-5 h-5 animate-spin text-[#0B3B29]" />
             </div>
@@ -179,7 +152,7 @@ export function CommandesNonAffectees({ onAffectationSuccess }: Props) {
         onClose={() => setIsModalOpen(false)}
         commande={selectedCommande}
         livreursDispo={livreursDispo}
-        onAffecter={handleAffecterLivreur}
+        onAffecter={handleConfirmAffectation}
       />
     </>
   );

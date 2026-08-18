@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState } from "react";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -10,37 +10,23 @@ import { Dialog, DialogContent, DialogTitle } from "@/components/ui/dialog";
 import { MapPin, Search, Loader2, Package, Phone, Bike, Car, RefreshCw } from "lucide-react";
 import { Livreur } from "@/types/livreur.types";
 import { CommandeResponse } from "@/types/commande.types";
-import { getDisponibles } from "@/services/livreur.service";
-import { getAll as getAllCommandes } from "@/services/commande.service";
 
-export function LivreursDisponibles() {
-  const [livreurs, setLivreurs] = useState<Livreur[]>([]);
-  const [commandes, setCommandes] = useState<CommandeResponse[]>([]);
-  const [loading, setLoading] = useState<boolean>(true);
+interface Props {
+  livreurs: Livreur[];
+  commandes: CommandeResponse[]; // <-- Requis pour calculer la charge
+  loading: boolean;
+  onRefresh: () => void;
+}
+
+export function LivreursDisponibles({
+  livreurs,
+  commandes,
+  loading,
+  onRefresh,
+}: Props) {
   const [searchTerm, setSearchTerm] = useState("");
-
   const [selectedLivreur, setSelectedLivreur] = useState<Livreur | null>(null);
   const [isDetailModalOpen, setIsDetailModalOpen] = useState(false);
-
-  const fetchData = async () => {
-    try {
-      setLoading(true);
-      const [dataLivreurs, dataCommandes] = await Promise.all([
-        getDisponibles(),
-        getAllCommandes()
-      ]);
-      setLivreurs(dataLivreurs);
-      setCommandes(dataCommandes);
-    } catch (error) {
-      console.error("Erreur lors du chargement des données :", error);
-    } finally {
-      setLoading(false);
-    }
-  };
-
-  useEffect(() => {
-    fetchData();
-  }, []);
 
   const getChargeLivreur = (livreurId: string) => {
     return commandes.filter(
@@ -75,10 +61,9 @@ export function LivreursDisponibles() {
               </Badge>
             </CardTitle>
 
-            {/* Bouton de réactualisation sécurisé */}
             <div
               role="button"
-              onClick={!loading ? fetchData : undefined}
+              onClick={!loading ? onRefresh : undefined}
               className={`h-7 px-2.5 bg-white/10 hover:bg-white/20 text-white border border-white/20 text-[11px] font-medium rounded-md flex items-center gap-1 cursor-pointer transition-colors ${
                 loading ? "opacity-50 cursor-not-allowed" : ""
               }`}
@@ -100,7 +85,7 @@ export function LivreursDisponibles() {
         </CardHeader>
 
         <CardContent className="p-2.5 max-h-[220px] overflow-y-auto space-y-2 custom-scrollbar bg-white">
-          {loading ? (
+          {loading && livreurs.length === 0 ? (
             <div className="flex justify-center items-center py-6">
               <Loader2 className="w-5 h-5 animate-spin text-[#0B3B29]" />
             </div>

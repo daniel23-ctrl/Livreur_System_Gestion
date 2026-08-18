@@ -5,115 +5,92 @@ import { CircleCheck, TrendingUp, Star, Loader2 } from "lucide-react";
 import KpiCard from "@/components/admin/KpiCard";
 import EtatLivreurDot from "@/components/admin/EtatLivreurDot";
 import DashboardCommandesTable from "@/components/admin/DashboardCommandesTable";
-import axiosInstance from "@/lib/axios";
-import API from "@/lib/apiPaths";
-import { Commande } from "@/types/commande.types";
-import {KpiData} from "@/types/kpidata"
-import {Livreur} from "@/types/livreur.types"
+import { useAdmin } from "@/contexts/AdminContext"; // Import du contexte global
+import { KpiData } from "@/types/kpidata";
 
 export default function DashboardPage() {
-  const [commandes, setCommandes] = useState<Commande[]>([]);
-  const [livreurs, setLivreurs] = useState<Livreur[]>([]);
+  // Récupération des données partagées depuis le contexte global
+  const { commandes, livreursActifs, loading, chargerDonnees } = useAdmin();
+
   const [kpi, setKpi] = useState<KpiData | null>(null);
-  const [loading, setLoading] = useState(true);
   const [lastRefresh, setLastRefresh] = useState(new Date());
 
-  const fetchData = useCallback(async () => {
-    try {
-      // Optionnel : ne pas remettre setLoading(true) lors des auto-refreshs en arrière-plan (toutes les 30s) 
-      // pour éviter les clignotements intempestifs, ou le garder si vous le souhaitez à chaque fois.
-      const [cmdRes, livRes] = await Promise.all([
-        axiosInstance.get(API.commandes.all),
-        axiosInstance.get(API.livreurs.base),
-      ]);
-      setCommandes(cmdRes.data);
-      setLivreurs(livRes.data);
+  // Fonction utilitaire pour recalculer les KPI à partir des listes actuelles
+  const calculateKpis = useCallback((cmdList: typeof commandes) => {
+    const today = new Date().toDateString();
+    const livreesAujourdhui = cmdList.filter(
+      (c) =>
+        c.statut_commande === "LIVREE" &&
+        c.createdAt &&
+        new Date(c.createdAt).toDateString() === today
+    );
+    const totalAujourdhui = cmdList.filter(
+      (c) => c.createdAt && new Date(c.createdAt).toDateString() === today
+    );
+    const taux =
+      totalAujourdhui.length > 0
+        ? Math.round((livreesAujourdhui.length / totalAujourdhui.length) * 100)
+        : 0;
 
-      const today = new Date().toDateString();
-      const livreesAujourdhui = cmdRes.data.filter(
-        (c: Commande) =>
-          c.statut_commande === "LIVREE" &&
-          c.createdAt &&
-          new Date(c.createdAt).toDateString() === today
-      );
-      const totalAujourdhui = cmdRes.data.filter(
-        (c: Commande) => c.createdAt && new Date(c.createdAt).toDateString() === today
-      );
-      const taux =
-        totalAujourdhui.length > 0
-          ? Math.round((livreesAujourdhui.length / totalAujourdhui.length) * 100)
-          : 0;
+    const compteur: Record<string, number> = {};
+    cmdList.forEach((c) => {
+      if (c.livreur?.nom) {
+        const nomComplet = `${c.livreur.prenom ? c.livreur.prenom + " " : ""}${c.livreur.nom}`;
+        compteur[nomComplet] = (compteur[nomComplet] || 0) + 1;
+      }
+    });
+    const topAgent = Object.entries(compteur).sort((a, b) => b[1] - a[1])[0];
 
-      const compteur: Record<string, number> = {};
-      cmdRes.data.forEach((c: Commande) => {
-        if (c.livreur?.nom) {
-          const nomComplet = `${c.livreur.prenom ? c.livreur.prenom + " " : ""}${c.livreur.nom}`;
-          compteur[nomComplet] = (compteur[nomComplet] || 0) + 1;
-        }
-      });
-      const topAgent = Object.entries(compteur).sort((a, b) => b[1] - a[1])[0];
-
-      setKpi({
-        livraisons_jour: livreesAujourdhui.length,
-        taux_reussite: taux,
-        agent_plus_actif: topAgent
-          ? { nom: topAgent[0], prenom: "", nb_courses: topAgent[1] }
-          : null,
-      });
-
-      setLastRefresh(new Date());
-    } catch (err) {
-      console.error("Erreur chargement dashboard", err);
-    } finally {
-      setLoading(false);
-    }
+    setKpi({
+      livraisons_jour: livreesAujourdhui.length,
+      taux_reussite: taux,
+      agent_plus_actif: topAgent
+        ? { nom: topAgent[0], prenom: "", nb_courses: topAgent[1] }
+        : null,
+    });
   }, []);
 
+  // Recalculer les KPIs dès que les commandes changent dans le contexte
   useEffect(() => {
-    fetchData();
-    const interval = setInterval(fetchData, 30000);
-    return () => clearInterval(interval);
-  }, [fetchData]);
+    calculateKpis(commandes);
+    setLastRefresh(new Date());
+  }, [commandes, calculateKpis]);
 
-  const disponibles = livreurs.filter((l) => l.etat_activite === "DISPONIBLE").length;
-  const enCourse = livreurs.filter((l) => l.etat_activite === "EN_COURSE").length;
-  const horsligne = livreurs.filter((l) => l.etat_activite === "HORS_LIGNE").length;
+  const disponibles = livreursActifs.filter((l) => l.etat_activite === "DISPONIBLE").length;
+  const enCourse = livreursActifs.filter((l) => l.etat_activite === "EN_COURSE").length;
+  const horsligne = livreursActifs.filter((l) => l.etat_activite === "HORS_LIGNE").length;
 
   return (
-    <div
-      className="flex-1 w-full min-h-screen flex flex-col bg-cover bg-center bg-no-repeat bg-fixed"
-      style={{ backgroundImage: "url('/backdashboard.jpg')" }}
-    >
+    <div className="flex-1 w-full min-h-screen flex flex-col bg-cover bg-center bg-no-repeat bg-fixed">
       <div className="flex-1 p-2.5 sm:p-6 space-y-3 sm:space-y-6 max-w-[1600px] mx-auto w-full">
-        {/* KPI Cards : Toujours visibles même pendant le chargement */}
-        <div className="grid grid-cols-3 gap-1.5 sm:gap-4">
+        <div className="bg-[#0B3B29]/80 rounded-2xl shadow-lg border border-white/10 flex flex-col lg:flex-row items-center justify-between divide-y lg:divide-y-0 lg:divide-x divide-white/15 w-full">
           <KpiCard
-            label="Livraisons"
+            label="LIVRAISONS"
             value={kpi?.livraisons_jour ?? 0}
-            subtitle="+1 vs hier"
-            iconBg="#F0FDF4"
-            icon={<CircleCheck className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: "#16A34A" }} />}
+            subtitle="Aujourd'hui"
+            iconBg="rgba(255, 255, 255, 0.15)"
+            icon={<CircleCheck style={{ color: "#4ADE80" }} />}
           />
           <KpiCard
-            label="Taux réussite"
+            label="TAUX RÉUSSITE"
             value={`${kpi?.taux_reussite ?? 0}%`}
             subtitle="Hors annul."
-            iconBg="#FEF9E7"
-            icon={<TrendingUp className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: "#DCA524" }} />}
+            iconBg="rgba(255, 255, 255, 0.15)"
+            icon={<TrendingUp style={{ color: "#FACC15" }} />}
           />
           <KpiCard
-            label="Top Agent"
+            label="TOP AGENT"
             value={kpi?.agent_plus_actif?.nom ?? "—"}
-            subtitle={kpi?.agent_plus_actif ? `${kpi.agent_plus_actif.nb_courses} courses` : "Aucun"}
-            iconBg="#FEF9E7"
-            icon={<Star className="w-4 h-4 sm:w-6 sm:h-6" style={{ color: "#DCA524" }} />}
+            subtitle={kpi?.agent_plus_actif ? `${kpi.agent_plus_actif.nb_courses} courses` : undefined}
+            iconBg="rgba(255, 255, 255, 0.15)"
+            icon={<Star style={{ color: "#FACC15" }} />}
           />
         </div>
 
         {/* Section Tableau + Livreurs */}
         <div className="flex flex-col xl:flex-row gap-4 sm:gap-6 items-start w-full">
-          {/* Conteneur Tableau avec gestion du chargement ciblée */}
-          <div className="w-full xl:flex-1 min-w-0  rounded-xl sm:rounded-2xl border border-gray-100  overflow-hidden shadow-sm">
+          {/* Conteneur Tableau */}
+          <div className="w-full xl:flex-1 min-w-0 rounded-xl sm:rounded-2xl border border-gray-100 overflow-hidden shadow-sm bg-white">
             {loading && commandes.length === 0 ? (
               <div className="flex flex-col items-center justify-center p-16 gap-3">
                 <Loader2 className="w-8 h-8 animate-spin" style={{ color: "#C49A1A" }} />
@@ -123,7 +100,7 @@ export default function DashboardPage() {
               <DashboardCommandesTable
                 commandes={commandes}
                 lastRefresh={lastRefresh}
-                onRefresh={fetchData}
+                onRefresh={() => chargerDonnees(false)}
               />
             )}
           </div>
@@ -147,14 +124,14 @@ export default function DashboardPage() {
             </div>
 
             <div className="overflow-y-auto max-h-[250px] sm:max-h-[350px] lg:max-h-[500px]">
-              {loading && livreurs.length === 0 ? (
+              {loading && livreursActifs.length === 0 ? (
                 <div className="flex justify-center items-center py-10">
                   <Loader2 className="w-5 h-5 animate-spin text-slate-400" />
                 </div>
-              ) : livreurs.length === 0 ? (
+              ) : livreursActifs.length === 0 ? (
                 <p className="text-center py-6 text-[11px] sm:text-xs text-[#9CA3AF]">Aucun livreur</p>
               ) : (
-                livreurs.map((liv) => {
+                livreursActifs.map((liv) => {
                   const initiales = `${liv.prenom?.[0] ?? ""}${liv.nom?.[0] ?? ""}`.toUpperCase();
                   const nbCourses = commandes.filter(
                     (c) =>

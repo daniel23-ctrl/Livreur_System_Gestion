@@ -15,7 +15,7 @@ import {
 
 interface LivreurTableProps {
   livreurs: Livreur[];
-  isLoading?: boolean; // Ajout de la prop de chargement
+  isLoading?: boolean; 
   onEdit: (livreur: Livreur) => void;
   onDelete: (id: string) => void;
   onToggleStatus: (id: string, currentStatus: string) => void;

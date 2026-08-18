@@ -1,12 +1,8 @@
-
 import { Livreur } from '@/types/livreur.types';
 import { LivreurProfile } from '@/types/mission';
-
-
 import { CommandeResponse } from '@/types/commande.types';
 
 export function MapProfileLivreur(livreurData: Livreur, commandes: CommandeResponse[]): LivreurProfile {
-
     const prenom = livreurData.prenom || '';
     const nom = livreurData.nom || '';
     const nomComplet = [prenom, nom].filter(Boolean).join(' ') || 'Mon compte';
@@ -25,6 +21,7 @@ export function MapProfileLivreur(livreurData: Livreur, commandes: CommandeRespo
     ).length;
 
     return {
+        ...livreurData, 
         initials,
         name: nomComplet,
         status: livreurData.etat_activite || 'En ligne',
