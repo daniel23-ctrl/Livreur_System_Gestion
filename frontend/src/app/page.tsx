@@ -11,7 +11,7 @@ export default function HomePage() {
     const role = localStorage.getItem('role');
 
     if (!token || !role) {
-      router.replace('/auth/login');
+      router.replace('/login');
       return;
     }
 
@@ -20,14 +20,14 @@ export default function HomePage() {
         router.replace('/admin/dashboard');
         break;
       case 'LIVREUR':
-        router.replace('/livreur/dashboard');
+        router.replace('/livreur');
         break;
       case 'CLIENT':
-        router.replace('/client/dashboard');
+        router.replace('/client');
         break;
       default:
         localStorage.clear();
-        router.replace('/auth/login');
+        router.replace('/login');
         break;
     }
   }, [router]);
