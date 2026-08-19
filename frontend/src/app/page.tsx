@@ -20,10 +20,10 @@ export default function HomePage() {
         router.replace('/admin/dashboard');
         break;
       case 'LIVREUR':
-        router.replace('/livreur/dashboard');
+        router.replace('/livreur');
         break;
       case 'CLIENT':
-        router.replace('/client/dashboard');
+        router.replace('/client');
         break;
       default:
         localStorage.clear();
