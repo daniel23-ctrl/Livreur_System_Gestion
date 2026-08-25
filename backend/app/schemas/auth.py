@@ -7,6 +7,10 @@ class LoginSchema(BaseModel):
     identifiant: str
     mot_de_passe: str
 
+class VerifierOTPSchema(BaseModel):
+    utilisateur_id: str
+    code: str
+    
 class TokenSchema(BaseModel):
     access_token: str
     token_type: str = "bearer"

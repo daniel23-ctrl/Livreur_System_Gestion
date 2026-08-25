@@ -3,46 +3,59 @@ from sqlalchemy.ext.asyncio import AsyncSession
 from sqlalchemy import select
 from app.models.notification import Notification, StatutEnvoiEnum, DeclencheurEnum
 from app.schemas.notification import NotificationResponse
-import africastalking
+from app.services.sms_service import envoyer_sms as envoyer_sms_brut  # fonction http.client fiable, déjà testée
 
-from app.core.config import settings
 
-africastalking.initialize(
-    username=settings.AFRICAS_TALKING_USERNAME,
-    api_key=settings.AFRICAS_TALKING_API_KEY
-)
-sms = africastalking.SMS
-
-async def envoyer_sms( db: AsyncSession, id_commande: str, telephone: str, message: str, declencheur: DeclencheurEnum ) -> NotificationResponse:
+async def envoyer_sms(
+    db: AsyncSession,
+    id_commande: str,
+    telephone: str,
+    message: str,
+    declencheur: DeclencheurEnum,
+    ws_manager=None,
+) -> NotificationResponse:
     """Envoie un SMS et journalise le résultat"""
 
-    # Créer la notification en attente
     notification = Notification(
         id_commande=id_commande,
         telephone_destinataire=telephone,
         message=message,
         statut_envoi=StatutEnvoiEnum.EN_ATTENTE,
-        declencheur=declencheur
+        declencheur=declencheur,
     )
     db.add(notification)
     await db.flush()
 
-    # Tentative d'envoi SMS — asynchrone et non bloquant
-    try:
-        sms.send(message, [f"+228{telephone}"])
+    # Envoi réel via http.client (contourne le bug SSL du SDK)
+    succes = envoyer_sms_brut(telephone, message)
+
+    if succes:
         notification.statut_envoi = StatutEnvoiEnum.ENVOYE
         notification.envoye_le = datetime.utcnow()
-    except Exception:
-        # Échec SMS — on journalise sans bloquer le système
+    else:
         notification.statut_envoi = StatutEnvoiEnum.ECHEC
 
     await db.commit()
     await db.refresh(notification)
-    return _to_response(notification)
 
-async def envoyer_sms_assignation( db: AsyncSession,id_commande: str,telephone_client: str,nom_livreur: str,telephone_livreur: str) -> NotificationResponse:
+    reponse = _to_response(notification)
+
+    # Diffusion temps réel — admin, client, livreur perçoivent la notification
+    if ws_manager:
+        await ws_manager.broadcast("notificationCreated", reponse.model_dump(mode="json"))
+
+    return reponse
+
+
+async def envoyer_sms_assignation(
+    db: AsyncSession,
+    id_commande: str,
+    telephone_client: str,
+    nom_livreur: str,
+    telephone_livreur: str,
+    ws_manager=None,
+) -> NotificationResponse:
     """SMS envoyé au client lors de l'assignation d'un livreur"""
-
     message = (
         f"Votre colis a été pris en charge. "
         f"Votre livreur est {nom_livreur} — "
@@ -51,14 +64,29 @@ async def envoyer_sms_assignation( db: AsyncSession,id_commande: str,telephone_c
     )
     return await envoyer_sms(
         db, id_commande, telephone_client,
-        message, DeclencheurEnum.ASSIGNEE
+        message, DeclencheurEnum.ASSIGNEE, ws_manager
     )
+
+from app.models.commande import Commande
+
+async def lister_notifications_par_livreur(
+    db: AsyncSession, id_livreur: str
+) -> list[NotificationResponse]:
+    """Liste les notifications des commandes assignées à ce livreur"""
+    resultat = await db.execute(
+        select(Notification)
+        .join(Commande, Commande.id_commande == Notification.id_commande)
+        .where(Commande.id_livreur == id_livreur)
+    )
+    notifications = resultat.scalars().all()
+    return [_to_response(n) for n in notifications]
 
 async def envoyer_sms_livraison(
     db: AsyncSession,
     id_commande: str,
     telephone_client: str,
-    nom_livreur: str
+    nom_livreur: str,
+    ws_manager=None,
 ) -> NotificationResponse:
     """SMS envoyé au client lors de la mise en livraison"""
     message = (
@@ -68,8 +96,9 @@ async def envoyer_sms_livraison(
     )
     return await envoyer_sms(
         db, id_commande, telephone_client,
-        message, DeclencheurEnum.EN_COURS_DE_LIVRAISON
+        message, DeclencheurEnum.EN_COURS_DE_LIVRAISON, ws_manager
     )
+
 
 async def lister_notifications(db: AsyncSession) -> list[NotificationResponse]:
     """Liste toutes les notifications — Admin uniquement"""
@@ -77,7 +106,10 @@ async def lister_notifications(db: AsyncSession) -> list[NotificationResponse]:
     notifications = resultat.scalars().all()
     return [_to_response(n) for n in notifications]
 
-async def lister_notifications_par_commande( db: AsyncSession, id_commande: str ) -> list[NotificationResponse]:
+
+async def lister_notifications_par_commande(
+    db: AsyncSession, id_commande: str
+) -> list[NotificationResponse]:
     """Liste les notifications d'une commande"""
     resultat = await db.execute(
         select(Notification).where(Notification.id_commande == id_commande)
@@ -85,6 +117,35 @@ async def lister_notifications_par_commande( db: AsyncSession, id_commande: str 
     notifications = resultat.scalars().all()
     return [_to_response(n) for n in notifications]
 
+async def lister_notifications_par_client(
+    db: AsyncSession, id_client: str
+) -> list[NotificationResponse]:
+    """Liste les notifications des commandes du client connecté"""
+    resultat = await db.execute(
+        select(Notification)
+        .join(Commande, Commande.id_commande == Notification.id_commande)
+        .where(Commande.id_client == id_client)
+    )
+    notifications = resultat.scalars().all()
+    return [_to_response(n) for n in notifications]
+
+async def envoyer_sms_nouvelle_mission_livreur(
+    db: AsyncSession,
+    id_commande: str,
+    telephone_livreur: str,
+    reference_commande: str,
+    ws_manager=None,
+) -> NotificationResponse:
+    """SMS envoyé au livreur lorsqu'une nouvelle mission lui est assignée"""
+    message = (
+        f"Nouvelle mission assignée ({reference_commande}). "
+        f"Consultez l'application KUSI pour les détails."
+    )
+    return await envoyer_sms(
+        db, id_commande, telephone_livreur,
+        message, DeclencheurEnum.ASSIGNEE, ws_manager
+    )
+    
 def _to_response(notification: Notification) -> NotificationResponse:
     return NotificationResponse(
         id_notification=notification.id_notification,
@@ -94,5 +155,5 @@ def _to_response(notification: Notification) -> NotificationResponse:
         statut_envoi=notification.statut_envoi,
         declencheur=notification.declencheur,
         envoye_le=notification.envoye_le,
-        createdAt=notification.createdAt
+        createdAt=notification.createdAt,
     )

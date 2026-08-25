@@ -2,6 +2,8 @@ from datetime import datetime, timedelta
 from jose import JWTError, jwt
 from passlib.context import CryptContext
 from app.core.config import settings
+import random
+
 
 # Outil de hachage des mots de passe
 pwd_context = CryptContext(
@@ -33,3 +35,16 @@ def decoder_token(token: str) -> dict:
         return payload
     except JWTError:
         return None
+    
+
+pwd_context = CryptContext(schemes=["bcrypt"], deprecated="auto")
+
+def generer_code_otp() -> str:
+    """Génère un code à 6 chiffres."""
+    return f"{random.randint(0, 999999):06d}"
+
+def hacher_otp(code: str) -> str:
+    return pwd_context.hash(code)
+
+def verifier_otp_hash(code_saisi: str, code_hache: str) -> bool:
+    return pwd_context.verify(code_saisi, code_hache)

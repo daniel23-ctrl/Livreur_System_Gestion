@@ -8,7 +8,6 @@ from app.core.database import Base
 class EtatActiviteEnum(str, enum.Enum):
     HORS_LIGNE = "HORS_LIGNE"
     DISPONIBLE = "DISPONIBLE"
-    EN_COURSE = "EN_COURSE"
 
 class VehiculeEnum(str, enum.Enum):
     MOTO = "MOTO"

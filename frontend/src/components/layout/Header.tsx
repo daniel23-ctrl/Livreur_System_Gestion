@@ -13,6 +13,7 @@ import {
   TooltipTrigger,
 } from '@/components/ui/tooltip';
 import { LoginResponse } from '@/types/auth.types';
+import NotificationsPopoverClient from "@/components/client/NotificationsPopoverClient";
 
 export function Header() {
   const [user, setUser] = useState<LoginResponse | null>(null);
@@ -72,16 +73,8 @@ export function Header() {
           <div className="flex items-center gap-2 shrink-0">
             {/* Tooltip Notifications */}
             <Tooltip>
-              <TooltipTrigger
-                render={
-                  <Button
-                    size="icon"
-                    className="relative h-8 w-8 rounded-full bg-transparent text-xs font-bold text-emerald-200/70 hover:text-white hover:bg-white/10"
-                  />
-                }
-              >
-                <Bell size={16} />
-                <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#d4a017] border border-[#0b3b29]" />
+              <TooltipTrigger render={<span />}>
+                <NotificationsPopoverClient />
               </TooltipTrigger>
               <TooltipContent side="bottom" className="bg-white text-[#0b3b29] border-gray-200 text-xs font-medium shadow-md z-50">
                 Notifications

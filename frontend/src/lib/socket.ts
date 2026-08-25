@@ -1,18 +1,22 @@
-// lib/socket.ts
-
 class WSService {
   private ws: WebSocket | null = null;
   private listeners: Map<string, Function[]> = new Map();
 
-  connect() {
-    // Si déjà connecté ou en cours de connexion, on ne fait rien
-    if (this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
+  connect(force = false) {
+    if (!force && this.ws && (this.ws.readyState === WebSocket.OPEN || this.ws.readyState === WebSocket.CONNECTING)) {
       return;
     }
 
-    // Pointe bien vers l'URL de ton FastAPI avec la route /ws
-    const wsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
-    
+    if (force && this.ws) {
+      this.ws.onclose = null; // évite la reconnexion automatique de l'ancienne connexion
+      this.ws.close();
+      this.ws = null;
+    }
+
+    const baseWsUrl = process.env.NEXT_PUBLIC_WS_URL || 'ws://localhost:8000/ws';
+    const token = typeof window !== 'undefined' ? localStorage.getItem('access_token') : null;
+    const wsUrl = token ? `${baseWsUrl}?token=${encodeURIComponent(token)}` : baseWsUrl;
+
     this.ws = new WebSocket(wsUrl);
 
     this.ws.onopen = () => {
@@ -21,14 +25,15 @@ class WSService {
 
     this.ws.onmessage = (event) => {
       try {
-        console.log('Message brut reçu du WebSocket :', event.data);
-        
-        // On parse le JSON reçu du serveur FastAPI pour extraire l'événement et les données
         const parsed = JSON.parse(event.data);
-        const eventName = parsed.event; // Ex: 'commandeCreated'
-        const eventData = parsed.data;  // Ex: { id: '...', reference: '...' }
+        const eventName = parsed.event;
+        const eventData = parsed.data;
 
-        // Si on a bien un nom d'événement valide et des écouteurs inscrits
+        if (eventName === 'ping') {
+          this.ws?.send('pong');
+          return;
+        }
+
         if (eventName && this.listeners.has(eventName)) {
           this.listeners.get(eventName)?.forEach((callback) => callback(eventData));
         }
@@ -44,8 +49,16 @@ class WSService {
     this.ws.onclose = () => {
       console.log('WebSocket déconnecté. Nouvelle tentative dans 3 secondes...');
       this.ws = null;
-      setTimeout(() => this.connect(), 3000); // Reconnexion automatique
+      setTimeout(() => this.connect(), 3000);
     };
+  }
+
+  disconnect() {
+    if (this.ws) {
+      this.ws.onclose = null;
+      this.ws.close();
+      this.ws = null;
+    }
   }
 
   on(event: string, callback: Function) {

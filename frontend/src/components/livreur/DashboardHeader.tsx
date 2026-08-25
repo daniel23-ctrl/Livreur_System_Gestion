@@ -10,12 +10,13 @@ import {
   TooltipProvider,
   TooltipTrigger,
 } from "@/components/ui/tooltip";
+import NotificationsPopoverLivreur from "@/components/livreur/NotificationsPopoverLivreur";
 
 interface DashboardHeaderProps {
   title: string;
   onToggleMobileMenu?: () => void;
   location?: string;
-  user?: any; // <-- Ajout de l'utilisateur en prop depuis le parent
+  user?: any; // 
 }
 
 export function DashboardHeader({
@@ -84,16 +85,8 @@ export function DashboardHeader({
         <div className="flex items-center gap-3 lg:gap-5">
           {/* Tooltip Notifications */}
           <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="outline"
-                  className="relative p-2 rounded-full text-gray-500 hover:bg-gray-50 transition-colors h-9 w-9"
-                />
-              }
-            >
-              <Bell className="w-4 h-4 lg:w-5 lg:h-5 text-gray-600" />
-              <span className="absolute top-1.5 right-1.5 w-2 h-2 rounded-full bg-[#DCA524] border-2 border-white" />
+            <TooltipTrigger render={<span />}>
+              <NotificationsPopoverLivreur />
             </TooltipTrigger>
             <TooltipContent
               side="bottom"

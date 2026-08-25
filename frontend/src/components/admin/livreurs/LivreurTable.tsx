@@ -69,7 +69,6 @@ export function LivreurTable({ livreurs, isLoading = false, onEdit, onDelete, on
             {sortedLivreurs.map((l) => {
               let statusBadgeColor = "bg-slate-100 text-slate-700 border-slate-200";
               if (l.etat_activite === "DISPONIBLE") statusBadgeColor = "bg-emerald-50 text-emerald-700 border-emerald-200";
-              if (l.etat_activite === "EN_COURSE") statusBadgeColor = "bg-amber-50 text-amber-700 border-amber-200";
               if (l.etat_activite === "HORS_LIGNE") statusBadgeColor = "bg-rose-50 text-rose-700 border-rose-200";
 
               return (

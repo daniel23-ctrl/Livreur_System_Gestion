@@ -5,7 +5,7 @@ import { StatutCommande } from '@/types/commande.types';
 import { LivreurSidebar } from './LivreurSidebar';
 import { DashboardHeader } from './DashboardHeader';
 import { CommandeCard } from './CommandeCard';
-import { LivreurSettings } from './LivreurSettings'; // <--- Import du composant de paramètres
+import { LivreurSettings } from './LivreurSettings'; 
 import { updateStatutCommande } from '@/services/commande.service';
 import { useLivreur } from '@/contexts/LivreurContext';
 import { PackageX, TrendingUp, CheckCircle2, Clock, Truck, Calendar, Globe, ArrowRightLeft } from 'lucide-react';

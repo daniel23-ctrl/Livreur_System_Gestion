@@ -1,10 +1,10 @@
 "use client";
-
+import NotificationsPopover from "@/components/admin/NotificationsPopover";
 import React, { useEffect, useState, useCallback } from "react";
 import { usePathname } from "next/navigation";
 import { Bell, Menu, Sun } from "lucide-react";
 import { Livreur } from "@/types/livreur.types";
-import { getConnectes } from "@/services/livreur.service"; 
+import { getConnectes } from "@/services/livreur.service";
 import { getCurrentUser } from "@/services/auth.service";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarFallback } from "@/components/ui/avatar";
@@ -28,7 +28,7 @@ export interface AdminHeaderProps {
   onNouvelleCommande?: () => void;
   onToggleMobileMenu?: () => void;
   location?: string;
-  onRefreshData?: () => void; 
+  onRefreshData?: () => void;
 }
 
 export default function AdminHeader({
@@ -43,7 +43,7 @@ export default function AdminHeader({
   const [currentDate, setCurrentDate] = useState<string>("");
   const [user, setUser] = useState<any>(null);
   const [mounted, setMounted] = useState(false);
-  
+
   // États pour la gestion du Dialog et des livreurs
   const [isDialogOpen, setIsDialogOpen] = useState(false);
   const [livreursEnLigne, setLivreursEnLigne] = useState<Livreur[]>([]);
@@ -97,7 +97,7 @@ export default function AdminHeader({
             <h1 className=" sm:text-xl lg:text-xl font-bold text-emerald-950 tracking-tight leading-tight">
               {title}
             </h1>
-            
+
             <p className="md:block text-xs lg:text-xs">
               {currentDate ? `${currentDate}, ${location}` : location}
             </p>
@@ -108,16 +108,8 @@ export default function AdminHeader({
         <div className="flex items-center gap-3 lg:gap-5">
           {/* Tooltip Notifications */}
           <Tooltip>
-            <TooltipTrigger
-              render={
-                <Button
-                  variant="outline"
-                  className="relative p-2 rounded-full text-gray-500 hover:bg-gray-50 transition-colors"
-                />
-              }
-            >
-              <Bell className="w-5 h-5 lg:w-6 lg:h-6 text-gray-600" />
-              <span className="absolute top-1.5 right-1.5 w-2.5 h-2.5 rounded-full bg-[#DCA524] border-2 border-white" />
+            <TooltipTrigger render={<span />}>
+              <NotificationsPopover />
             </TooltipTrigger>
             <TooltipContent
               side="bottom"
@@ -169,7 +161,7 @@ export default function AdminHeader({
               Changer de thème
             </TooltipContent>
           </Tooltip>
-          
+
         </div>
       </header>
     </TooltipProvider>

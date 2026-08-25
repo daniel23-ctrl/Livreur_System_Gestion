@@ -12,11 +12,12 @@ import { CreateCommandePayload } from '@/types/commande.types';
 import { getCurrentUser } from '@/services/auth.service';
 import { LoginResponse } from '@/types/auth.types';
 import { toast } from 'sonner';
-import { wsService } from '@/lib/socket'; 
+import { wsService } from '@/lib/socket';
 
 export default function ClientDashboard() {
   const [activeTab, setActiveTab] = useState<'send' | 'track' | 'orders'>('send');
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [ordersRefreshKey, setOrdersRefreshKey] = useState(0);
 
   const [user, setUser] = useState<LoginResponse | null>(null);
   const [mounted, setMounted] = useState(false);
@@ -25,8 +26,27 @@ export default function ClientDashboard() {
     setMounted(true);
     setUser(getCurrentUser());
 
-    // 1. Lancer la connexion WebSocket globale dès que le dashboard s'affiche
     wsService.connect();
+
+    const handleCommandeCreated = () => {
+      setOrdersRefreshKey((k) => k + 1);
+    };
+    const handleCommandeEtatUpdated = () => {
+      setOrdersRefreshKey((k) => k + 1);
+    };
+    const handleCommandeAssigned = () => {
+      setOrdersRefreshKey((k) => k + 1);
+    };
+
+    wsService.on('commandeCreated', handleCommandeCreated);
+    wsService.on('commandeEtatUpdated', handleCommandeEtatUpdated);
+    wsService.on('commandeAssigned', handleCommandeAssigned);
+
+    return () => {
+      wsService.off('commandeCreated', handleCommandeCreated);
+      wsService.off('commandeEtatUpdated', handleCommandeEtatUpdated);
+      wsService.off('commandeAssigned', handleCommandeAssigned);
+    };
   }, []);
 
   // État global du formulaire de livraison partagé avec l'enfant
@@ -90,6 +110,10 @@ export default function ClientDashboard() {
         description: '',
         instructions: '',
       });
+
+      // La commande vient d'être créée : on force le rechargement de la liste
+      // sans attendre le WebSocket (évite tout délai perçu par l'utilisateur)
+      setOrdersRefreshKey((k) => k + 1);
 
       // Basculer vers l'onglet des commandes (instantané, sans détruire le composant)
       setActiveTab('orders');
@@ -192,7 +216,7 @@ export default function ClientDashboard() {
           </div>
 
           <div className={activeTab === 'orders' ? 'block' : 'hidden'}>
-            <OrdersView />
+            <OrdersView key={ordersRefreshKey} />
           </div>
         </div>
       </main>

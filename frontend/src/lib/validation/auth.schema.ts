@@ -1,7 +1,7 @@
 import { z } from "zod";
 
 // Regex pour vérifier un numéro à 8 chiffres (Togo)
-const phoneRegex = /^[0-9]{8}$/;
+const phoneRegex = /^(9[0-9]|7[0-9]|2[2-7])[0-9]{6}$/;
 
 // Regex simple pour valider un email
 const emailRegex = /^[^\s@]+@[^\s@]+\.[^\s@]+$/;
@@ -27,17 +27,11 @@ export const inscriptionSchema = z
   .object({
     prenom: z.string().min(3, "Le prénom doit contenir au moins 3 caractères"),
     nom: z.string().min(3, "Le nom doit contenir au moins 3 caractères"),
-    email: z
-      .string()
-      .min(1, "L'adresse email est requise")
-      .email("Adresse email invalide"),
+    email: z.string().email("Email invalide").optional().or(z.literal("")),
     telephone: z
       .string()
-      .optional()
-      .refine(
-        (val) => !val || phoneRegex.test(val),
-        "Le téléphone doit contenir exactement 8 chiffres"
-      ),
+      .min(1, "Le téléphone est requis")
+      .regex(phoneRegex, "Numéro togolais invalide (doit commencer par 9, 7 ou 2, et contenir 8 chiffres)"),
     motDePasse: z
       .string()
       .min(6, "Le mot de passe doit contenir au moins 6 caractères"),

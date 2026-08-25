@@ -1,10 +1,10 @@
 import axiosInstance from "@/lib/axios";
 import API from "@/lib/apiPaths";
 
-export type EtatLivreur = "DISPONIBLE" | "EN_COURSE" | "HORS_LIGNE";
+export type EtatLivreur = "DISPONIBLE" | "HORS_LIGNE";
 export type VehiculeEnum = "MOTO" | "VOITURE";
 export type RoleEnum = "LIVREUR" | "ADMINISTRATEUR" | "CLIENT";
-export type EtatActiviteEnum = "DISPONIBLE" | "EN_COURSE" | "HORS_LIGNE";
+export type EtatActiviteEnum = "DISPONIBLE" | "HORS_LIGNE";
 
 export interface LivreurCreatePayload {
   nom: string;

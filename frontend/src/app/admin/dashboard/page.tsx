@@ -5,7 +5,7 @@ import { CircleCheck, TrendingUp, Star, Loader2 } from "lucide-react";
 import KpiCard from "@/components/admin/KpiCard";
 import EtatLivreurDot from "@/components/admin/EtatLivreurDot";
 import DashboardCommandesTable from "@/components/admin/DashboardCommandesTable";
-import { useAdmin } from "@/contexts/AdminContext"; // Import du contexte global
+import { useAdmin } from "@/contexts/AdminContext"; 
 import { KpiData } from "@/types/kpidata";
 
 export default function DashboardPage() {
@@ -57,7 +57,6 @@ export default function DashboardPage() {
   }, [commandes, calculateKpis]);
 
   const disponibles = livreursActifs.filter((l) => l.etat_activite === "DISPONIBLE").length;
-  const enCourse = livreursActifs.filter((l) => l.etat_activite === "EN_COURSE").length;
   const horsligne = livreursActifs.filter((l) => l.etat_activite === "HORS_LIGNE").length;
 
   return (
@@ -112,7 +111,6 @@ export default function DashboardPage() {
               <div className="flex items-center gap-2 sm:gap-3 lg:mt-2">
                 {[
                   { count: disponibles, color: "#16A34A" },
-                  { count: enCourse, color: "#D97706" },
                   { count: horsligne, color: "#9CA3AF" },
                 ].map(({ count, color }, i) => (
                   <span key={i} className="flex items-center gap-1 text-[10px] sm:text-xs font-semibold" style={{ color }}>
@@ -162,14 +160,14 @@ export default function DashboardPage() {
                       <div className="flex flex-col items-end gap-0.5 shrink-0">
                         <span className="text-[11px] sm:text-xs font-bold text-[#1A1A1A]">{nbCourses}</span>
                         <span className="text-[8px] sm:text-[10px] text-[#9CA3AF]">courses</span>
-                        {liv.etat_activite === "DISPONIBLE" && (
+                        {/* {liv.etat_activite === "DISPONIBLE" && (
                           <button
                             className="mt-0.5 px-1.5 py-0.5 rounded-md text-[9px] sm:text-[10px] font-semibold text-white transition-opacity hover:opacity-90"
                             style={{ backgroundColor: "#C49A1A" }}
                           >
                             Affecter
                           </button>
-                        )}
+                        )} */}
                       </div>
                     </div>
                   );

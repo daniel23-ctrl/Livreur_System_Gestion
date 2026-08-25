@@ -142,32 +142,25 @@ async def update_commande(
 async def update_statut_commande(
     request: Request,
     id_commande: str, 
-    payload: StatutUpdatePayload, # On récupère le statut via un body JSON propre
+    payload: StatutUpdatePayload,
     db: AsyncSession = Depends(get_db), 
     current_user: Utilisateur = Depends(require_livreur_ou_admin)
 ):
     """Modifie le statut d'une commande — Admin et Livreur uniquement"""
-    
-    # On passe payload.nouveau_statut à votre fonction de service
-    commande = await mettre_a_jour_statut_commande(db, id_commande, payload.nouveau_statut)
+    ws_manager = request.app.state.ws_manager
+
+    commande = await mettre_a_jour_statut_commande(db, id_commande, payload.nouveau_statut, ws_manager=ws_manager)
     if not commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     
     statuts_cibles = ["EN_COURS_DE_COLLECTE", "EN_COURS_DE_LIVRAISON", "LIVREE", "ANNULEE"]
-    
-    ws_data = {
-        "id": commande.id_commande,
-        "reference": commande.reference
-    }
-    
+    ws_data = {"id": commande.id_commande, "reference": commande.reference}
     if commande.statut_commande in statuts_cibles:
         ws_data["statut_nouveau"] = commande.statut_commande
 
-    # Diffusion WebSocket : Statut changé
-    ws_manager = request.app.state.ws_manager
     await ws_manager.broadcast("commandeEtatUpdated", ws_data)
-    
     return commande
+
 
 @router.patch("/{id_commande}/livreur", response_model=CommandeResponse | None)
 async def assigner_livreur_commande(
@@ -177,20 +170,18 @@ async def assigner_livreur_commande(
     db: AsyncSession = Depends(get_db),
     current_user: Utilisateur = Depends(require_admin)
 ):
+    ws_manager = request.app.state.ws_manager
     try:
-        commande = await affecter_commande_a_livreur(db, id_commande, data.id_livreur)
+        commande = await affecter_commande_a_livreur(db, id_commande, data.id_livreur, ws_manager=ws_manager)
     except ValueError as e:
         raise HTTPException(status_code=400, detail=str(e))
     if not commande:
         raise HTTPException(status_code=404, detail="Commande non trouvée")
     
-    # Récupération sécurisée du nom du livreur si la relation est chargée
     nom_livreur_str = "un livreur"
     if hasattr(commande, "livreur") and commande.livreur:
         nom_livreur_str = f"{commande.livreur.prenom} {commande.livreur.nom}"
 
-    # Diffusion WebSocket : Livreur assigné
-    ws_manager = request.app.state.ws_manager
     await ws_manager.broadcast("commandeAssigned", {
         "id": commande.id_commande,
         "reference": commande.reference,

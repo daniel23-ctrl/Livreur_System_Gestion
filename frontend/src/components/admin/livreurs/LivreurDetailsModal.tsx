@@ -88,8 +88,6 @@ export function LivreurDetailsModal({
         switch (etat?.toUpperCase()) {
             case "DISPONIBLE":
                 return "bg-emerald-900 text-white";
-            case "EN_COURSE":
-                return "bg-blue-900 text-white";
             case "HORS_LIGNE":
             default:
                 return "bg-slate-800 text-slate-100";
@@ -100,8 +98,6 @@ export function LivreurDetailsModal({
         switch (etat?.toUpperCase()) {
             case "DISPONIBLE":
                 return "bg-emerald-400";
-            case "EN_COURSE":
-                return "bg-blue-400";
             case "HORS_LIGNE":
             default:
                 return "bg-slate-400";

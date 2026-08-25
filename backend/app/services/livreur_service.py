@@ -103,10 +103,7 @@ async def lister_livreurs_connectes(db: AsyncSession) -> list[LivreurResponse]:
     resultat = await db.execute(
         select(Livreur).where(
             Livreur.est_actif == True,
-            or_(
-                Livreur.etat_activite == EtatActiviteEnum.DISPONIBLE,
-                Livreur.etat_activite == EtatActiviteEnum.EN_COURSE
-            )
+            Livreur.etat_activite == EtatActiviteEnum.DISPONIBLE,
         ).options(
             selectinload(Livreur.utilisateur)
         )

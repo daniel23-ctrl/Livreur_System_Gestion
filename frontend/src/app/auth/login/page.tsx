@@ -35,34 +35,35 @@ export default function LoginPage() {
     "h-11 pl-10 bg-[#FAFAFA] border-[#E5E7EB] focus:border-[#C49A1A] focus-visible:ring-2 focus-visible:ring-[#C49A1A]/30 text-[#1A1A1A] placeholder:text-[#9CA3AF]";
 
   async function onSubmit(data: LoginFormData) {
-  setServerError("");
-  try {
-    const res = await login({
-      identifiant: data.identifiant,
-      mot_de_passe: data.motDePasse,
-    });
+    setServerError("");
+    try {
+      const res = await login({
+        identifiant: data.identifiant,
+        mot_de_passe: data.motDePasse,
+      });
 
-    // Redirection dynamique selon le rôle retourné par l'API
-    switch (res?.role) {
-      case "ADMINISTRATEUR":
-        router.push("/admin/dashboard");
-        break;
-      case "LIVREUR":
-        router.push("/livreur");
-        break;
-      case "CLIENT":
-        router.push("/client"); 
-        break;
-      default:
-        // En cas de rôle non reconnu ou par défaut
-        router.push("/admin/dashboard");
-        break;
+      // Redirection dynamique selon le rôle retourné par l'API
+      switch (res?.role) {
+        case "ADMINISTRATEUR":
+          router.push("/admin/dashboard");
+          break;
+        case "LIVREUR":
+          router.push("/livreur");
+          break;
+        case "CLIENT":
+          router.push("/client"); 
+          break;
+        default:
+          router.push("/");
+          break;
+      }
+    } catch (err) {
+      const axiosErr = err as AxiosError<{ detail: string }>;
+      // Utilisation de la réponse du serveur ou d'un message par défaut propre
+      const errorMessage = axiosErr.response?.data?.detail || "Identifiants incorrects ou service indisponible.";
+      setServerError(errorMessage);
     }
-  } catch (err) {
-    const axiosErr = err as AxiosError<{ detail: string }>;
-    setServerError(axiosErr.response?.data?.detail || "Identifiants incorrects.");
   }
-}
 
   return (
     <div className="w-full bg-white/95 backdrop-blur-md rounded-2xl border border-white/20 p-6 sm:p-8 shadow-2xl">
@@ -71,7 +72,8 @@ export default function LoginPage() {
         <p className="text-sm mt-1 text-[#6B7280]">Accédez à votre espace KUSI.</p>
       </div>
 
-      <form onSubmit={handleSubmit(onSubmit)} className="space-y-4">
+      {/* On s'assure que handleSubmit intercepte bien l'événement */}
+      <form onSubmit={(e) => { e.preventDefault(); handleSubmit(onSubmit)(e); }} className="space-y-4">
         {/* Email ou Téléphone */}
         <div className="space-y-1.5">
           <Label htmlFor="identifiant" className="text-sm font-medium text-[#374151]">

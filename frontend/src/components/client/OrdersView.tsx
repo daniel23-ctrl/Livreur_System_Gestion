@@ -29,20 +29,25 @@ export function OrdersView() {
   };
 
   useEffect(() => {
-    fetchOrders(true);
+  fetchOrders(true);
 
-    const handleUpdate = () => {
-      console.log("Mise à jour temps réel reçue ! Rechargement des commandes...");
-      fetchOrders(false);
-    };
+  const handleUpdate = () => {
+    console.log("Mise à jour temps réel reçue ! Rechargement des commandes...");
+    fetchOrders(false);
+  };
 
-    wsService.on('commandeUpdated', handleUpdate);
+  wsService.on('commandeCreated', handleUpdate);
+  wsService.on('commandeUpdated', handleUpdate);
+  wsService.on('commandeAssigned', handleUpdate);
+  wsService.on('commandeEtatUpdated', handleUpdate);
 
-    return () => {
-      wsService.off('commandeUpdated', handleUpdate);
-    };
-  }, []);
-
+  return () => {
+    wsService.off('commandeCreated', handleUpdate);
+    wsService.off('commandeUpdated', handleUpdate);
+    wsService.off('commandeAssigned', handleUpdate);
+    wsService.off('commandeEtatUpdated', handleUpdate);
+  };
+}, []);
   // Résolution séquentielle globale de toutes les adresses pour éviter le 429
   useEffect(() => {
     if (orders.length === 0) return;

@@ -3,9 +3,10 @@ from sqlalchemy import select, or_
 from app.models.utilisateur import Utilisateur, RoleEnum
 from app.schemas.client import ClientCreate
 from app.core.security import hacher_mot_de_passe
+from app.services.otp_service import generer_et_envoyer_otp  
 
 async def creer_client(db: AsyncSession, data: ClientCreate) -> Utilisateur:
-    """Crée un compte client"""
+    """Crée un compte client et envoie un code OTP si téléphone fourni"""
     nouvel_utilisateur = Utilisateur(
         nom=data.nom,
         prenom=data.prenom,
@@ -17,6 +18,10 @@ async def creer_client(db: AsyncSession, data: ClientCreate) -> Utilisateur:
     db.add(nouvel_utilisateur)
     await db.commit()
     await db.refresh(nouvel_utilisateur)
+
+    if nouvel_utilisateur.telephone:
+        await generer_et_envoyer_otp(db, nouvel_utilisateur)
+
     return nouvel_utilisateur
 
 async def trouver_client(db: AsyncSession, id: str) -> Utilisateur | None:

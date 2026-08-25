@@ -11,13 +11,13 @@ export default function HomePage() {
     const role = localStorage.getItem('role');
 
     if (!token || !role) {
-      router.replace('/login');
+      router.replace('/auth/login');
       return;
     }
 
     switch (role.toUpperCase()) {
       case 'ADMINISTRATEUR':
-        router.replace('/admin/dashboard');
+        router.replace('/admin');
         break;
       case 'LIVREUR':
         router.replace('/livreur');
@@ -27,7 +27,7 @@ export default function HomePage() {
         break;
       default:
         localStorage.clear();
-        router.replace('/login');
+        router.replace('auth/login');
         break;
     }
   }, [router]);

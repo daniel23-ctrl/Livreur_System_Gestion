@@ -4,12 +4,14 @@ const API = {
     inscription: "/api/auth/inscription",
     inscriptionLivreur: "/api/livreurs",
     logout: "/api/auth/logout",
+    verifierOtp: "/api/auth/verifier-otp",
+    renvoyerOtp: (utilisateurId: string) => `/api/auth/renvoyer-otp/${utilisateurId}`,
   },
   admin: {
     base: "/api/admins",
     recuperer: (id: string) => `/api/admins/${id}`,
     modifierMe: "/api/admins/me",
-    },
+  },
   livreurs: {
     base: "/api/livreurs",
     disponibles: "/api/livreurs/disponibles",
@@ -29,7 +31,7 @@ const API = {
     base: "/api/commandes",
     all: "/api/commandes/all",
     mesCommandes: "/api/commandes",
-    livreur : `/api/commandes/livreur`,
+    livreur: `/api/commandes/livreur`,
     detail: (id: string) => `/api/commandes/${id}`,
     parReference: (ref: string) => `/api/commandes/reference/${ref}`,
     statut: (id: string) => `/api/commandes/${id}/statut`,
@@ -37,9 +39,11 @@ const API = {
     suiviPublic: (ref: string) => `/api/commandes/suivi/${ref}`,
   },
   notifications: {
-    base: "/api/notifications",
-    parCommande: (id: string) => `/api/notifications/${id}`,
-  },
+  all: "/api/notifications",
+  parCommande: (idCommande: string) => `/api/notifications/${idCommande}`,
+  mesNotificationsLivreur: "/api/notifications/livreur/mes-notifications",
+  mesNotificationsClient: "/api/notifications/client/mes-notifications",
+},
 } as const;
 
 export default API;

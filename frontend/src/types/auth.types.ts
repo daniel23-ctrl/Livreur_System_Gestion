@@ -15,6 +15,18 @@ export interface LoginResponse {
   prenom: string;
   telephone? : string
 }
+export interface VerifierOtpPayload {
+  utilisateur_id: string;
+  code: string;
+}
+
+export interface VerifierOtpResponse {
+  message: string;
+}
+
+export interface RenvoyerOtpResponse {
+  message: string;
+}
 
 export interface InscriptionClientPayload {
   nom: string;

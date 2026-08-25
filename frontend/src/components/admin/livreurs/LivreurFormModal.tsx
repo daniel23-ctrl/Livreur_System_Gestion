@@ -17,15 +17,15 @@ import { Input } from "@/components/ui/input";
 import { Label } from "@/components/ui/label";
 import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
 import { toast } from "sonner";
-import { 
-    Edit3, 
-    UserPlus, 
-    Loader2, 
-    AlertCircle, 
-    User, 
-    Phone, 
-    Mail, 
-    Car, 
+import {
+    Edit3,
+    UserPlus,
+    Loader2,
+    AlertCircle,
+    User,
+    Phone,
+    Mail,
+    Car,
     Hash,
     Lock,
     Eye,
@@ -40,12 +40,12 @@ interface LivreurFormModalProps {
     isCreation?: boolean;
 }
 
-export function LivreurFormModal({ 
-    livreur = null, 
-    isOpen, 
-    onClose, 
-    onSuccess, 
-    isCreation = false 
+export function LivreurFormModal({
+    livreur = null,
+    isOpen,
+    onClose,
+    onSuccess,
+    isCreation = false
 }: LivreurFormModalProps) {
     const [showPassword, setShowPassword] = useState(false);
     const [showConfirmPassword, setShowConfirmPassword] = useState(false);
@@ -58,8 +58,8 @@ export function LivreurFormModal({
         watch,
         formState: { errors, isSubmitting, isDirty },
     } = useForm<LivreurFormValues>({
-        resolver: zodResolver(livreurSchema),
-        mode: "onBlur", 
+        resolver: zodResolver(livreurSchema(isCreation)),
+        mode: "onBlur",
         defaultValues: {
             prenom: "",
             nom: "",
@@ -153,8 +153,8 @@ export function LivreurFormModal({
                 errorMessage = error.message;
             }
 
-            const defaultTitle = isCreation 
-                ? "Erreur lors de la création du livreur" 
+            const defaultTitle = isCreation
+                ? "Erreur lors de la création du livreur"
                 : "Erreur lors de la modification du livreur";
 
             toast.error(errorMessage ? `${errorMessage}` : defaultTitle);
@@ -240,9 +240,8 @@ export function LivreurFormModal({
                                 <Input
                                     id="telephone"
                                     {...register("telephone")}
-                                    className={`rounded-md pl-9 pr-3 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${
-                                        errors.telephone ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
-                                    }`}
+                                    className={`rounded-md pl-9 pr-3 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${errors.telephone ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
+                                        }`}
                                     placeholder="90000000"
                                 />
                             </div>
@@ -263,9 +262,8 @@ export function LivreurFormModal({
                                     id="email"
                                     type="email"
                                     {...register("email")}
-                                    className={`rounded-md pl-9 pr-3 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${
-                                        errors.email ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
-                                    }`}
+                                    className={`rounded-md pl-9 pr-3 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${errors.email ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
+                                        }`}
                                     placeholder="jean@example.com"
                                 />
                             </div>
@@ -291,9 +289,8 @@ export function LivreurFormModal({
                                     id="mot_de_passe"
                                     type={showPassword ? "text" : "password"}
                                     {...register("mot_de_passe")}
-                                    className={`rounded-md pl-9 pr-10 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${
-                                        errors.mot_de_passe ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
-                                    }`}
+                                    className={`rounded-md pl-9 pr-10 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${errors.mot_de_passe ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
+                                        }`}
                                     placeholder="••••••••"
                                 />
                                 <button
@@ -323,9 +320,8 @@ export function LivreurFormModal({
                                     id="confirmation_mot_de_passe"
                                     type={showConfirmPassword ? "text" : "password"}
                                     {...register("confirmation_mot_de_passe")}
-                                    className={`rounded-md pl-9 pr-10 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${
-                                        errors.confirmation_mot_de_passe ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
-                                    }`}
+                                    className={`rounded-md pl-9 pr-10 py-2 text-sm focus-visible:ring-1 outline-none border-slate-200 ${errors.confirmation_mot_de_passe ? "border-red-500 focus-visible:ring-red-500" : "focus-visible:ring-[#0d4732]"
+                                        }`}
                                     placeholder="••••••••"
                                 />
                                 <button

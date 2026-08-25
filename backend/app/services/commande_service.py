@@ -12,7 +12,7 @@ from app.models.livreur import EtatActiviteEnum, Livreur
 from app.schemas.client import ClientResponse
 from app.schemas.commande import CommandeCreate, CommandeResponse, CommandeUpdate
 from app.schemas.livreur import LivreurResponse as LivreurInfo
-from app.services.notification_service import envoyer_sms_assignation
+from app.services.notification_service import envoyer_sms_assignation, envoyer_sms_livraison, envoyer_sms_nouvelle_mission_livreur
 
 # Options d'Eager Loading réutilisables pour toutes les requêtes
 LOAD_RELATIONS = [
@@ -24,7 +24,7 @@ LOAD_RELATIONS = [
 TRANSITIONS_AUTORISEES = {
     StatutCommandeEnum.ASSIGNEE: [StatutCommandeEnum.EN_COURS_DE_COLLECTE, StatutCommandeEnum.ANNULEE],
     StatutCommandeEnum.EN_COURS_DE_COLLECTE: [StatutCommandeEnum.EN_COURS_DE_LIVRAISON, StatutCommandeEnum.ANNULEE],
-    StatutCommandeEnum.EN_COURS_DE_LIVRAISON: StatutCommandeEnum.LIVREE,
+    StatutCommandeEnum.EN_COURS_DE_LIVRAISON: StatutCommandeEnum.LIVREE,  # <-- pas une liste !
 }
 
 def generate_reference() -> str:
@@ -177,7 +177,7 @@ async def mettre_a_jour_commande(
 
 
 async def mettre_a_jour_statut_commande(
-    db: AsyncSession, id_commande: str, nouveau_statut: StatutCommandeEnum
+    db: AsyncSession, id_commande: str, nouveau_statut: StatutCommandeEnum, ws_manager=None
 ) -> CommandeResponse | None:
     """Met à jour le statut selon la machine à états irréversible — RG-CMD-06"""
     resultat = await db.execute(
@@ -189,42 +189,47 @@ async def mettre_a_jour_statut_commande(
     if not commande:
         return None
 
-    # 1. Validation des transitions ou de l'annulation
+    # Validation des transitions ou de l'annulation
     if nouveau_statut == StatutCommandeEnum.ANNULEE:
         if commande.statut_commande == StatutCommandeEnum.LIVREE:
             raise ValueError("Impossible d'annuler une commande déjà livrée.")
     else:
-        transition_attendue = TRANSITIONS_AUTORISEES.get(commande.statut_commande)
-        if nouveau_statut != transition_attendue:
+        transitions_possibles = TRANSITIONS_AUTORISEES.get(commande.statut_commande, [])
+        if nouveau_statut not in transitions_possibles:
             raise ValueError(
-                f"Transition invalide : {commande.statut_commande} → {nouveau_statut}. "
-                f"Transition attendue : {commande.statut_commande} → {transition_attendue}"
+                f"Transition invalide : {commande.statut_commande} -> {nouveau_statut}. "
+                f"Transitions possibles : {transitions_possibles}"
             )
 
-    # 2. Application du nouveau statut
+    # Application du nouveau statut
     commande.statut_commande = nouveau_statut
 
-    # 3. Libération du livreur et dissociation si LIVREE ou ANNULEE
-    if (nouveau_statut == StatutCommandeEnum.LIVREE or nouveau_statut == StatutCommandeEnum.ANNULEE) and commande.id_livreur:
-        livreur_res = await db.execute(
-            select(Livreur).where(Livreur.id_livreur == commande.id_livreur)
-        )
-        livreur = livreur_res.scalar_one_or_none()
-        if livreur:
-            livreur.etat_activite = EtatActiviteEnum.DISPONIBLE
-        
-        # On dissocie proprement le livreur de la commande
-        commande.id_livreur = None
-        commande.livreur = None
+    # Capture des infos livreur pour le SMS de mise en livraison
+    nom_livreur = None
+    if commande.livreur and commande.livreur.utilisateur:
+        nom_livreur = f"{commande.livreur.utilisateur.prenom} {commande.livreur.utilisateur.nom}".strip()
+
+    # Plus de dissociation : id_livreur reste renseigné même après LIVREE/ANNULEE,
+    # pour préserver l'historique du livreur et du client. La disponibilité du livreur
+    # est calculée à partir du statut de ses commandes, pas de ce lien.
 
     await db.commit()
+
+    # Notification SMS lors du passage en livraison
+    if nouveau_statut == StatutCommandeEnum.EN_COURS_DE_LIVRAISON and nom_livreur:
+        await envoyer_sms_livraison(
+            db,
+            id_commande=commande.id_commande,
+            telephone_client=commande.telephone_demandeur,
+            nom_livreur=nom_livreur,
+            ws_manager=ws_manager,
+        )
+
     return await trouver_commande(db, id_commande)
-
-
 async def affecter_commande_a_livreur(
-    db: AsyncSession, id_commande: str, id_livreur: str
+    db: AsyncSession, id_commande: str, id_livreur: str, ws_manager=None
 ) -> CommandeResponse | None:
-    """Affecte une commande à un livreur — transaction atomique — RG-AFF-03"""
+    """Affecte une commande à un livreur — transaction atomique"""
 
     commande_res = await db.execute(
         select(Commande)
@@ -245,9 +250,9 @@ async def affecter_commande_a_livreur(
     livreur = livreur_res.scalar_one_or_none()
     if not livreur:
         raise ValueError("Livreur non trouvé")
-    if livreur.etat_activite not in [EtatActiviteEnum.DISPONIBLE, EtatActiviteEnum.EN_COURSE]:
+    if livreur.etat_activite == EtatActiviteEnum.HORS_LIGNE:
         raise ValueError(
-            "Ce livreur n'est pas en mesure d'effectuer une course."
+            "Ce livreur est hors ligne et ne peut pas recevoir de course."
         )
 
     nom_livreur = (
@@ -257,16 +262,26 @@ async def affecter_commande_a_livreur(
 
     commande.id_livreur = id_livreur
     commande.statut_commande = StatutCommandeEnum.ASSIGNEE
-    livreur.etat_activite = EtatActiviteEnum.EN_COURSE
 
     await db.commit()
 
+    # SMS au client : informe qu'un livreur a été assigné, avec ses coordonnées
     await envoyer_sms_assignation(
         db,
         id_commande=commande.id_commande,
         telephone_client=commande.telephone_demandeur,
         nom_livreur=nom_livreur,
         telephone_livreur=telephone_livreur,
+        ws_manager=ws_manager,
+    )
+
+    # SMS au livreur : l'informe qu'une nouvelle mission lui a été assignée
+    await envoyer_sms_nouvelle_mission_livreur(
+        db,
+        id_commande=commande.id_commande,
+        telephone_livreur=telephone_livreur,
+        reference_commande=commande.reference,
+        ws_manager=ws_manager,
     )
 
     return await trouver_commande(db, id_commande)

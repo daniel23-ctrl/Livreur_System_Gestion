@@ -1,6 +1,6 @@
 import uuid
 from datetime import datetime
-from sqlalchemy import String, Enum, DateTime
+from sqlalchemy import String, Enum, DateTime, Boolean
 from sqlalchemy.orm import Mapped, mapped_column
 from app.core.database import Base
 import enum
@@ -22,6 +22,8 @@ class Utilisateur(Base):
     email: Mapped[str | None] = mapped_column(String(255), unique=True, nullable=True)
     telephone: Mapped[str | None] = mapped_column(String(8), unique=True, nullable=True)
     mot_de_passe: Mapped[str] = mapped_column(String(255), nullable=False)
+    telephone_verifie: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
+    email_verifie: Mapped[bool] = mapped_column(Boolean, default=False, nullable=False)
     role: Mapped[RoleEnum] = mapped_column(Enum(RoleEnum), nullable=False)
     createdAt: Mapped[datetime] = mapped_column(DateTime, default=datetime.utcnow)
     updatedAt: Mapped[datetime] = mapped_column(

@@ -43,14 +43,15 @@ export default function InscriptionPage() {
   async function onSubmit(data: InscriptionFormData) {
     setServerError("");
     try {
-      await inscrireClient({
+      const response = await inscrireClient({
         nom: data.nom,
         prenom: data.prenom,
-        email: data.email,
-        telephone: data.telephone || undefined,
+        email: data.email || undefined,
+        telephone: data.telephone,
         mot_de_passe: data.motDePasse,
       });
-      router.push("/auth/login?inscrit=1");
+
+      router.push(`/auth/verifier-otp?id=${response.id_utilisateur}`);
     } catch (err) {
       const axiosErr = err as AxiosError<{ detail: string }>;
       setServerError(axiosErr.response?.data?.detail || "Une erreur est survenue.");
@@ -86,9 +87,11 @@ export default function InscriptionPage() {
           </div>
         </div>
 
-        {/* Email */}
+        {/* Email devient optionnel */}
         <div className="space-y-1.5">
-          <Label htmlFor="email" className="text-sm font-medium text-[#374151]">Adresse email</Label>
+          <Label htmlFor="email" className="text-sm font-medium text-[#374151]">
+            Adresse email <span className="text-[#9CA3AF] font-normal">(optionnel)</span>
+          </Label>
           <div className="relative">
             <Mail className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />
             <Input id="email" type="email" placeholder="amavi@exemple.com" {...register("email")} className={`${inputClass} ${errors.email ? "border-red-400 focus:border-red-500" : ""}`} />
@@ -96,10 +99,10 @@ export default function InscriptionPage() {
           {errors.email && <p className="text-xs text-red-500 font-medium">{errors.email.message}</p>}
         </div>
 
-        {/* Téléphone */}
+        {/* Téléphone devient obligatoire */}
         <div className="space-y-1.5">
           <Label htmlFor="telephone" className="text-sm font-medium text-[#374151]">
-            Téléphone (8 chiffres) <span className="text-[#9CA3AF] font-normal">(optionnel)</span>
+            Téléphone (8 chiffres)
           </Label>
           <div className="relative">
             <Phone className="absolute left-3 top-1/2 -translate-y-1/2 w-4 h-4 text-[#9CA3AF]" />

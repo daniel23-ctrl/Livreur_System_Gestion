@@ -12,7 +12,6 @@ export function LivreurStatsOverview({ livreurs }: LivreurStatsProps) {
   const total = livreurs.length;
   const actifs = livreurs.filter((l) => l.est_actif).length;
   const disponibles = livreurs.filter((l) => l.etat_activite === "DISPONIBLE" && l.est_actif).length;
-  const enMission = livreurs.filter((l) => l.etat_activite === "EN_COURSE" && l.est_actif).length;
 
   const kpiItems = [
     {
@@ -39,14 +38,7 @@ export function LivreurStatsOverview({ livreurs }: LivreurStatsProps) {
       iconBg: "rgba(255, 255, 255, 0.15)",
       icon: <Bike className="w-5 h-5 text-[#4ADE80]" />,
     },
-    {
-      id: "enMission",
-      label: "EN MISSION",
-      value: enMission,
-      subtitle: "En cours de route",
-      iconBg: "rgba(255, 255, 255, 0.15)",
-      icon: <ShieldAlert className="w-5 h-5 text-[#FACC15]" />,
-    },
+   
   ];
 
   return (

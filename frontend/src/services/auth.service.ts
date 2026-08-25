@@ -6,21 +6,26 @@ import {
   ClientResponse,
   InscriptionClientPayload,
   InscriptionLivreurPayload,
+  VerifierOtpPayload,
+  VerifierOtpResponse,
+  RenvoyerOtpResponse,
   Role,
 } from "@/types/auth.types";
+import { wsService } from "@/lib/socket";
 
 
 export async function login(payload: LoginPayload): Promise<LoginResponse> {
-  const { data } = await axiosInstance.post<LoginResponse>(
-    API.auth.login,
-    payload
-  );
+  const { data } = await axiosInstance.post<LoginResponse>(API.auth.login, payload);
   localStorage.setItem("access_token", data.access_token);
   localStorage.setItem("role", data.role);
   localStorage.setItem("id", data.id);
   localStorage.setItem("nom", data.nom);
   localStorage.setItem("prenom", data.prenom);
-  localStorage.setItem("telephone", data.telephone || "")
+  localStorage.setItem("telephone", data.telephone || "");
+
+  // Reconnexion forcée du WebSocket avec le token fraîchement reçu
+  wsService.connect(true);
+
   return data;
 }
 
@@ -43,11 +48,11 @@ export async function inscrireLivreur(
   );
   return data;
 }
-
 export async function logout(): Promise<void> {
   try {
     await axiosInstance.post(API.auth.logout);
   } finally {
+    wsService.disconnect();
     localStorage.clear();
     window.location.href = "/auth/login";
   }
@@ -67,7 +72,7 @@ export function getCurrentUser() {
     prenom: localStorage.getItem("prenom") ?? "",
     telephone: localStorage.getItem("telephone") || undefined,
   };
-  
+
   return response
 }
 
@@ -78,4 +83,23 @@ export function getRedirectPath(role: string): string {
     case "CLIENT": return "/client/commandes";
     default: return "/auth/login";
   }
+}
+
+export async function verifierOtp(
+  payload: VerifierOtpPayload
+): Promise<VerifierOtpResponse> {
+  const { data } = await axiosInstance.post<VerifierOtpResponse>(
+    API.auth.verifierOtp,
+    payload
+  );
+  return data;
+}
+
+export async function renvoyerOtp(
+  utilisateurId: string
+): Promise<RenvoyerOtpResponse> {
+  const { data } = await axiosInstance.post<RenvoyerOtpResponse>(
+    API.auth.renvoyerOtp(utilisateurId)
+  );
+  return data;
 }

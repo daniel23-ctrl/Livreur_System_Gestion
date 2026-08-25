@@ -45,7 +45,6 @@ export function LivreurFiltersBar({
           <SelectContent className="rounded-xl">
             <SelectItem value="TOUT STATUTS">TOUT (Statuts)</SelectItem>
             <SelectItem value="DISPONIBLE">Disponible</SelectItem>
-            <SelectItem value="EN_COURSE">En cours</SelectItem>
             <SelectItem value="HORS_LIGNE">Hors ligne</SelectItem>
           </SelectContent>
         </Select>
